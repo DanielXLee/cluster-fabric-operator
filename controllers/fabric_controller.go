@@ -18,8 +18,11 @@ package controllers
 
 import (
 	"context"
+	"reflect"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -46,7 +49,26 @@ type FabricReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *FabricReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	// your logic here
+	klog.Infof("Start reconciling Fabric: %s", req.NamespacedName)
+	instance := &operatorv1alpha1.Fabric{}
+
+	if err := r.Get(context.TODO(), req.NamespacedName, instance); err != nil {
+		if errors.IsNotFound(err) {
+			return ctrl.Result{}, nil
+		}
+		return ctrl.Result{}, err
+	}
+
+	originalInstance := instance.DeepCopy()
+	// Always attempt to patch the status after each reconciliation.
+	defer func() {
+		if reflect.DeepEqual(originalInstance.Status, instance.Status) {
+			return
+		}
+		if updateErr := r.Status().Update(ctx, instance, &client.UpdateOptions{}); updateErr != nil {
+			klog.Errorf("Update status failed, err: %v", updateErr)
+		}
+	}()
 
 	return ctrl.Result{}, nil
 }
