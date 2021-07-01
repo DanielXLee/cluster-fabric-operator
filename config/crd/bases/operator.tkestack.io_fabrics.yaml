@@ -1,0 +1,269 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.4.1
+  creationTimestamp: null
+  name: fabrics.operator.tkestack.io
+spec:
+  group: operator.tkestack.io
+  names:
+    kind: Fabric
+    listKind: FabricList
+    plural: fabrics
+    singular: fabric
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Fabric is the Schema for the fabrics API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: FabricSpec defines the desired state of Fabric
+            properties:
+              brokerConfig:
+                description: BrokerConfig represents the broker cluster configuration
+                  of the Submariner.
+                properties:
+                  'componentArr               ':
+                    items:
+                      type: string
+                    type: array
+                  'defaultCustomDomains       ':
+                    items:
+                      type: string
+                    type: array
+                  defaultGlobalnetClusterSize:
+                    type: integer
+                  'globalCIDRConfigMap           ':
+                    description: ConfigMap holds configuration data for pods to consume.
+                    properties:
+                      apiVersion:
+                        description: 'APIVersion defines the versioned schema of this
+                          representation of an object. Servers should convert recognized
+                          schemas to the latest internal value, and may reject unrecognized
+                          values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+                        type: string
+                      binaryData:
+                        additionalProperties:
+                          format: byte
+                          type: string
+                        description: BinaryData contains the binary data. Each key
+                          must consist of alphanumeric characters, '-', '_' or '.'.
+                          BinaryData can contain byte sequences that are not in the
+                          UTF-8 range. The keys stored in BinaryData must not overlap
+                          with the ones in the Data field, this is enforced during
+                          validation process. Using this field will require 1.10+
+                          apiserver and kubelet.
+                        type: object
+                      data:
+                        additionalProperties:
+                          type: string
+                        description: Data contains the configuration data. Each key
+                          must consist of alphanumeric characters, '-', '_' or '.'.
+                          Values with non-UTF-8 byte sequences must use the BinaryData
+                          field. The keys stored in Data must not overlap with the
+                          keys in the BinaryData field, this is enforced during validation
+                          process.
+                        type: object
+                      immutable:
+                        description: Immutable, if set to true, ensures that data
+                          stored in the ConfigMap cannot be updated (only object metadata
+                          can be modified). If not set to true, the field can be modified
+                          at any time. Defaulted to nil. This is a beta field enabled
+                          by ImmutableEphemeralVolumes feature gate.
+                        type: boolean
+                      kind:
+                        description: 'Kind is a string value representing the REST
+                          resource this object represents. Servers may infer this
+                          from the endpoint the client submits requests to. Cannot
+                          be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                        type: string
+                      metadata:
+                        description: 'Standard object''s metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata'
+                        type: object
+                    type: object
+                  'globalnetCIDRRange         ':
+                    type: string
+                  'globalnetEnable            ':
+                    type: boolean
+                  'ipsecSubmFile              ':
+                    type: string
+                  'serviceDiscoveryEnabled    ':
+                    type: boolean
+                type: object
+              cloudPrepareConfig:
+                properties:
+                  aws:
+                    properties:
+                      credentials:
+                        description: AWS credentials configuration file (default "/root/.aws/credentials")
+                        type: string
+                      gatewayInstance:
+                        default: m5n.large
+                        description: GatewayInstance represents type of gateways instance
+                          machine (default "m5n.large")
+                        type: string
+                      gateways:
+                        default: 1
+                        description: Gateways represents the count of worker nodes
+                          that will be used to deploy the Submariner gateway component
+                          on the managed cluster.
+                        type: integer
+                      infraId:
+                        description: AWS infra ID
+                        type: string
+                      profile:
+                        description: AWS profile to use for credentials (default "default")
+                        type: string
+                      region:
+                        description: AWS regio
+                        type: string
+                    type: object
+                  vendor:
+                    description: 'Vendor represents cloud vendor, example: aws, gcp'
+                    type: string
+                type: object
+              joinConfig:
+                description: JoinConfig represents the managed cluster join configuration
+                  of the Submariner.
+                properties:
+                  'cableDriver                  ':
+                    type: string
+                  'clientToken                  ':
+                    description: Secret holds secret data of a certain type. The total
+                      bytes of the values in the Data field must be less than MaxSecretSize
+                      bytes.
+                    properties:
+                      apiVersion:
+                        description: 'APIVersion defines the versioned schema of this
+                          representation of an object. Servers should convert recognized
+                          schemas to the latest internal value, and may reject unrecognized
+                          values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+                        type: string
+                      data:
+                        additionalProperties:
+                          format: byte
+                          type: string
+                        description: Data contains the secret data. Each key must
+                          consist of alphanumeric characters, '-', '_' or '.'. The
+                          serialized form of the secret data is a base64 encoded string,
+                          representing the arbitrary (possibly non-string) data value
+                          here. Described in https://tools.ietf.org/html/rfc4648#section-4
+                        type: object
+                      immutable:
+                        description: Immutable, if set to true, ensures that data
+                          stored in the Secret cannot be updated (only object metadata
+                          can be modified). If not set to true, the field can be modified
+                          at any time. Defaulted to nil. This is a beta field enabled
+                          by ImmutableEphemeralVolumes feature gate.
+                        type: boolean
+                      kind:
+                        description: 'Kind is a string value representing the REST
+                          resource this object represents. Servers may infer this
+                          from the endpoint the client submits requests to. Cannot
+                          be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                        type: string
+                      metadata:
+                        description: 'Standard object''s metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata'
+                        type: object
+                      stringData:
+                        additionalProperties:
+                          type: string
+                        description: stringData allows specifying non-binary secret
+                          data in string form. It is provided as a write-only convenience
+                          method. All keys and values are merged into the data field
+                          on write, overwriting any existing values. It is never output
+                          when reading from the API.
+                        type: object
+                      type:
+                        description: Used to facilitate programmatic handling of secret
+                          data.
+                        type: string
+                    type: object
+                  'clusterCIDR                  ':
+                    type: string
+                  'clusterID                    ':
+                    type: string
+                  'corednsCustomConfigMap         ':
+                    type: string
+                  'customDomains                ':
+                    items:
+                      type: string
+                    type: array
+                  'forceUDPEncaps               ':
+                    type: boolean
+                  'globalnetCIDR                ':
+                    type: string
+                  'globalnetClusterSize         ':
+                    type: integer
+                  'globalnetEnabled             ':
+                    type: boolean
+                  'healthCheckEnable            ':
+                    type: boolean
+                  'healthCheckInterval          ':
+                    format: int64
+                    type: integer
+                  healthCheckMaxPacketLossCount:
+                    format: int64
+                    type: integer
+                  'ikePort                      ':
+                    default: 500
+                    description: IkePort represents IPsec IKE port (default 500).
+                    type: integer
+                  'imageOverrideArr             ':
+                    items:
+                      type: string
+                    type: array
+                  'imageVersion                 ':
+                    type: string
+                  'ipsecDebug                   ':
+                    type: boolean
+                  'labelGateway                 ':
+                    type: boolean
+                  'loadBalancerEnabled          ':
+                    type: boolean
+                  'natTraversal                 ':
+                    type: boolean
+                  'nattPort                     ':
+                    default: 4500
+                    type: integer
+                  'preferredServer              ':
+                    type: boolean
+                  'repository                   ':
+                    type: string
+                  'serviceCIDR                  ':
+                    type: string
+                  'submarinerDebug              ':
+                    type: boolean
+                type: object
+            type: object
+          status:
+            description: FabricStatus defines the observed state of Fabric
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
