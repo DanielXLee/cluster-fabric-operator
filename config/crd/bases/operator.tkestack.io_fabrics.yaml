@@ -40,17 +40,17 @@ spec:
                 description: BrokerConfig represents the broker cluster configuration
                   of the Submariner.
                 properties:
-                  'componentArr               ':
+                  componentArr:
                     items:
                       type: string
                     type: array
-                  'defaultCustomDomains       ':
+                  defaultCustomDomains:
                     items:
                       type: string
                     type: array
                   defaultGlobalnetClusterSize:
                     type: integer
-                  'globalCIDRConfigMap           ':
+                  globalCIDRConfigMap:
                     description: ConfigMap holds configuration data for pods to consume.
                     properties:
                       apiVersion:
@@ -98,19 +98,41 @@ spec:
                         description: 'Standard object''s metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata'
                         type: object
                     type: object
-                  'globalnetCIDRRange         ':
+                  globalnetCIDRRange:
                     type: string
-                  'globalnetEnable            ':
+                  globalnetEnable:
                     type: boolean
-                  'ipsecSubmFile              ':
+                  ipsecSubmFile:
                     type: string
-                  'serviceDiscoveryEnabled    ':
+                  serviceDiscoveryEnabled:
                     type: boolean
                 type: object
               cloudPrepareConfig:
                 properties:
                   aws:
+                    description: AWS represents aws cloud prepare setup
                     properties:
+                      commonConfig:
+                        description: CommonPrepareConfig represents common setup for
+                          cloud vendor
+                        properties:
+                          metricsPort:
+                            default: 8080
+                            description: Metrics port (default 8080)
+                            type: integer
+                          natDiscoveryPort:
+                            default: 4490
+                            description: NAT discovery port (default 4490)
+                            type: integer
+                          nattPort:
+                            default: 4500
+                            description: IPSec NAT traversal port (default 4500)
+                            type: integer
+                          vxlanPort:
+                            default: 4800
+                            description: Internal VXLAN port (default 4800)
+                            type: integer
+                        type: object
                       credentials:
                         description: AWS credentials configuration file (default "/root/.aws/credentials")
                         type: string
@@ -143,9 +165,9 @@ spec:
                 description: JoinConfig represents the managed cluster join configuration
                   of the Submariner.
                 properties:
-                  'cableDriver                  ':
+                  cableDriver:
                     type: string
-                  'clientToken                  ':
+                  clientToken:
                     description: Secret holds secret data of a certain type. The total
                       bytes of the values in the Data field must be less than MaxSecretSize
                       bytes.
@@ -196,60 +218,60 @@ spec:
                           data.
                         type: string
                     type: object
-                  'clusterCIDR                  ':
+                  clusterCIDR:
                     type: string
-                  'clusterID                    ':
+                  clusterID:
                     type: string
-                  'corednsCustomConfigMap         ':
+                  corednsCustomConfigMap:
                     type: string
-                  'customDomains                ':
+                  customDomains:
                     items:
                       type: string
                     type: array
-                  'forceUDPEncaps               ':
+                  forceUDPEncaps:
                     type: boolean
-                  'globalnetCIDR                ':
+                  globalnetCIDR:
                     type: string
-                  'globalnetClusterSize         ':
+                  globalnetClusterSize:
                     type: integer
-                  'globalnetEnabled             ':
+                  globalnetEnabled:
                     type: boolean
-                  'healthCheckEnable            ':
+                  healthCheckEnable:
                     type: boolean
-                  'healthCheckInterval          ':
+                  healthCheckInterval:
                     format: int64
                     type: integer
                   healthCheckMaxPacketLossCount:
                     format: int64
                     type: integer
-                  'ikePort                      ':
+                  ikePort:
                     default: 500
                     description: IkePort represents IPsec IKE port (default 500).
                     type: integer
-                  'imageOverrideArr             ':
+                  imageOverrideArr:
                     items:
                       type: string
                     type: array
-                  'imageVersion                 ':
+                  imageVersion:
                     type: string
-                  'ipsecDebug                   ':
+                  ipsecDebug:
                     type: boolean
-                  'labelGateway                 ':
+                  labelGateway:
                     type: boolean
-                  'loadBalancerEnabled          ':
+                  loadBalancerEnabled:
                     type: boolean
-                  'natTraversal                 ':
+                  natTraversal:
                     type: boolean
-                  'nattPort                     ':
+                  nattPort:
                     default: 4500
                     type: integer
-                  'preferredServer              ':
+                  preferredServer:
                     type: boolean
-                  'repository                   ':
+                  repository:
                     type: string
-                  'serviceCIDR                  ':
+                  serviceCIDR:
                     type: string
-                  'submarinerDebug              ':
+                  submarinerDebug:
                     type: boolean
                 type: object
             type: object
