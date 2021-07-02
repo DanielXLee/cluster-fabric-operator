@@ -76,6 +76,7 @@ func main() {
 
 	if err = (&controllers.FabricReconciler{
 		Client: mgr.GetClient(),
+		Config: mgr.GetConfig(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		klog.Errorf("unable to create controller Fabric: %v", err)

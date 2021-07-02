@@ -43,6 +43,9 @@ manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and Cust
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
+generate-embeddedyamls: 
+	go generate controllers/ensures/operator/common/embeddedyamls/generate.go
+
 fmt: ## Run go fmt against code.
 	go fmt ./...
 
