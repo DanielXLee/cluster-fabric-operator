@@ -39,7 +39,8 @@ const (
 func NewBrokerSA(submarinerBrokerSA string) *v1.ServiceAccount {
 	sa := &v1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: submarinerBrokerSA,
+			Name:      submarinerBrokerSA,
+			Namespace: SubmarinerBrokerNamespace,
 		},
 	}
 
@@ -50,7 +51,8 @@ func NewBrokerSA(submarinerBrokerSA string) *v1.ServiceAccount {
 func NewBrokerAdminRole() *rbacv1.Role {
 	return &rbacv1.Role{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: submarinerBrokerAdminRole,
+			Name:      submarinerBrokerAdminRole,
+			Namespace: SubmarinerBrokerNamespace,
 		},
 		Rules: []rbacv1.PolicyRule{
 			{
@@ -86,7 +88,8 @@ func NewBrokerAdminRole() *rbacv1.Role {
 func NewBrokerClusterRole() *rbacv1.Role {
 	return &rbacv1.Role{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: submarinerBrokerClusterRole,
+			Name:      submarinerBrokerClusterRole,
+			Namespace: SubmarinerBrokerNamespace,
 		},
 		Rules: []rbacv1.PolicyRule{
 			{
@@ -112,7 +115,8 @@ func NewBrokerClusterRole() *rbacv1.Role {
 func NewBrokerRoleBinding(serviceAccount, role string) *rbacv1.RoleBinding {
 	binding := &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("%s-%s", serviceAccount, role),
+			Name:      fmt.Sprintf("%s-%s", serviceAccount, role),
+			Namespace: SubmarinerBrokerNamespace,
 		},
 		RoleRef: rbacv1.RoleRef{
 			APIGroup: "rbac.authorization.k8s.io",
@@ -135,7 +139,7 @@ func GetClientTokenSecret(c client.Client, brokerNamespace, submarinerBrokerSA s
 	sa := &v1.ServiceAccount{}
 	saKey := types.NamespacedName{Name: submarinerBrokerSA, Namespace: brokerNamespace}
 	if err := c.Get(context.TODO(), saKey, sa); err != nil {
-		return nil, fmt.Errorf("ServiceAccount %s get failed: %s", submarinerBrokerSA, err)
+		return nil, fmt.Errorf("ServiceAccount %s get failed: %v", submarinerBrokerSA, err)
 	}
 	if len(sa.Secrets) < 1 {
 		return nil, fmt.Errorf("ServiceAccount %s does not have any secret", sa.Name)
@@ -144,10 +148,10 @@ func GetClientTokenSecret(c client.Client, brokerNamespace, submarinerBrokerSA s
 
 	for _, secret := range sa.Secrets {
 		if strings.HasPrefix(secret.Name, brokerTokenPrefix) {
-			secret := &v1.Secret{}
-			secretKey := types.NamespacedName{Name: secret.Name, Namespace: brokerNamespace}
-			err := c.Get(context.TODO(), secretKey, secret)
-			return secret, err
+			sec := &v1.Secret{}
+			secKey := types.NamespacedName{Name: secret.Name, Namespace: brokerNamespace}
+			err := c.Get(context.TODO(), secKey, sec)
+			return sec, err
 		}
 	}
 

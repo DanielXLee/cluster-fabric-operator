@@ -25,6 +25,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/rest"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/DanielXLee/cluster-fabric-operator/controllers/components"
@@ -132,21 +133,23 @@ func createBrokerAdministratorRoleAndSA(c client.Client) error {
 	// Create the SA we need for the managing the broker (from subctl, etc..)
 	err := CreateNewBrokerSA(c, SubmarinerBrokerAdminSA)
 	if err != nil && !apierrors.IsAlreadyExists(err) {
-		return fmt.Errorf("error creating the broker admin service account: %s", err)
+		klog.Errorf("error creating the broker admin service account: %v", err)
+		return err
 	}
 
 	// Create the broker admin role
 	_, err = CreateOrUpdateBrokerAdminRole(c)
 	if err != nil {
-		return fmt.Errorf("error creating subctl role: %s", err)
+		klog.Errorf("error creating subctl role: %v", err)
+		return err
 	}
 
 	// Create the role binding
 	err = CreateNewBrokerRoleBinding(c, SubmarinerBrokerAdminSA, submarinerBrokerAdminRole)
 	if err != nil && !apierrors.IsAlreadyExists(err) {
-		return fmt.Errorf("error creating the broker rolebinding: %s", err)
+		klog.Errorf("error creating the broker rolebinding: %v", err)
+		return err
 	}
-
 	return nil
 }
 
@@ -182,11 +185,11 @@ func CreateNewBrokerNamespace(c client.Client) error {
 }
 
 func CreateOrUpdateClusterBrokerRole(c client.Client) (created bool, err error) {
-	return utils.CreateOrUpdateRole(c, SubmarinerBrokerNamespace, NewBrokerClusterRole())
+	return utils.CreateOrUpdateRole(c, NewBrokerClusterRole())
 }
 
 func CreateOrUpdateBrokerAdminRole(c client.Client) (created bool, err error) {
-	return utils.CreateOrUpdateRole(c, SubmarinerBrokerNamespace, NewBrokerAdminRole())
+	return utils.CreateOrUpdateRole(c, NewBrokerAdminRole())
 }
 
 func CreateNewBrokerRoleBinding(c client.Client, serviceAccount, role string) error {

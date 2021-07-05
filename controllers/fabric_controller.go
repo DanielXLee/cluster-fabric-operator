@@ -44,12 +44,17 @@ import (
 type FabricReconciler struct {
 	client.Client
 	*rest.Config
-	Scheme *runtime.Scheme
+	Scheme       *runtime.Scheme
+	DeployBroker bool
+	JoinBroker   bool
 }
 
 const brokerDetailsFilename = "broker-info.subm"
+const (
+	SubmarinerBrokerNamespace = "submariner-k8s-broker"
+)
 
-var defaultComponents = []string{components.ServiceDiscovery, components.Connectivity}
+// var defaultComponents = []string{components.ServiceDiscovery, components.Connectivity}
 var validComponents = []string{components.ServiceDiscovery, components.Connectivity}
 
 //+kubebuilder:rbac:groups=operator.tkestack.io,resources=fabrics,verbs=get;list;watch;create;update;patch;delete
@@ -87,10 +92,23 @@ func (r *FabricReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		}
 	}()
 
+	// Deploy submeriner broker
+	if r.DeployBroker {
+		klog.Info("Deploy submeriner broker")
+		if err := r.DeploySubmerinerBroker(instance); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
+	// Join managed cluster to submeriner borker
+	if r.JoinBroker {
+		klog.Info("Join managed cluster to submeriner broker")
+		// TBD
+	}
 	return ctrl.Result{}, nil
 }
 
-func (r *FabricReconciler) DeployBroker(instance *operatorv1alpha1.Fabric) error {
+func (r *FabricReconciler) DeploySubmerinerBroker(instance *operatorv1alpha1.Fabric) error {
 	brokerConfig := &instance.Spec.BrokerConfig
 	componentSet := stringset.New(brokerConfig.ComponentArr...)
 
@@ -98,10 +116,8 @@ func (r *FabricReconciler) DeployBroker(instance *operatorv1alpha1.Fabric) error
 		klog.Errorf("Invalid components parameter: %v", err)
 	}
 
-	// TODO: Remove this in the future, while service-discovery is marked as
-	//       deprecated we should still provide a consistent broker config file
-	if !brokerConfig.ServiceDiscoveryEnabled {
-		componentSet.Remove(components.ServiceDiscovery)
+	if brokerConfig.ServiceDiscoveryEnabled {
+		componentSet.Add(components.ServiceDiscovery)
 	}
 
 	if brokerConfig.GlobalnetEnable {
@@ -113,20 +129,19 @@ func (r *FabricReconciler) DeployBroker(instance *operatorv1alpha1.Fabric) error
 	}
 
 	klog.Info("Setting up broker RBAC")
-	err := broker.Ensure(r.Client, r.Config, brokerConfig.ComponentArr, false)
-	klog.Errorf("Error setting up broker RBAC: %v", err)
-
+	if err := broker.Ensure(r.Client, r.Config, brokerConfig.ComponentArr, false); err != nil {
+		klog.Errorf("Error setting up broker RBAC: %v", err)
+	}
 	klog.Info("Deploying the Submariner operator")
-	err = submarinerop.Ensure(r.Client, r.Config, true)
-	klog.Errorf("Error deploying the operator: %v", err)
-
+	if err := submarinerop.Ensure(r.Client, r.Config, true); err != nil {
+		klog.Errorf("Error deploying the operator: %v", err)
+	}
 	klog.Info("Deploying the broker")
-	err = brokercr.Ensure(r.Client, populateBrokerSpec(instance))
-	if err != nil {
+	if err := brokercr.Ensure(r.Client, populateBrokerSpec(instance)); err != nil {
 		klog.Errorf("Broker deployment failed: %v", err)
 	}
 
-	klog.Info("Creating %s file", brokerDetailsFilename)
+	klog.Infof("Creating %s file", brokerDetailsFilename)
 
 	// If deploy-broker is retried we will attempt to re-use the existing IPsec PSK secret
 	if brokerConfig.IpsecSubmFile == "" {
@@ -139,11 +154,13 @@ func (r *FabricReconciler) DeployBroker(instance *operatorv1alpha1.Fabric) error
 	}
 
 	subctlData, err := datafile.NewFromCluster(r.Client, r.Config, broker.SubmarinerBrokerNamespace, brokerConfig.IpsecSubmFile)
-	klog.Errorf("Error retrieving preparing the subm data file", err)
-
+	if err != nil {
+		klog.Errorf("Error retrieving preparing the subm data file: %v", err)
+	}
 	newFilename, err := datafile.BackupIfExists(brokerDetailsFilename)
-	klog.Errorf("Error backing up the brokerfile", err)
-
+	if err != nil {
+		klog.Errorf("Error backing up the brokerfile: %v", err)
+	}
 	if newFilename != "" {
 		klog.Infof("Backed up previous %s to %s", brokerDetailsFilename, newFilename)
 	}
@@ -155,19 +172,21 @@ func (r *FabricReconciler) DeployBroker(instance *operatorv1alpha1.Fabric) error
 		subctlData.CustomDomains = &brokerConfig.DefaultCustomDomains
 	}
 
-	klog.Errorf("Error setting up service discovery information", err)
-
 	// if brokerConfig.GlobalnetEnable {
 	// 	err = globalnet.ValidateExistingGlobalNetworks(r.Config, broker.SubmarinerBrokerNamespace)
 	// 	klog.Errorf("Error validating existing globalCIDR configmap", err)
 	// }
 
-	err = broker.CreateGlobalnetConfigMap(r.Client, brokerConfig.GlobalnetEnable, brokerConfig.GlobalnetCIDRRange,
-		brokerConfig.DefaultGlobalnetClusterSize, broker.SubmarinerBrokerNamespace)
-	klog.Errorf("Error creating globalCIDR configmap on Broker", err)
-
-	err = subctlData.WriteToFile(brokerDetailsFilename)
-	klog.Errorf("Error writing the broker information", err)
+	if err = broker.CreateGlobalnetConfigMap(r.Client, brokerConfig.GlobalnetEnable, brokerConfig.GlobalnetCIDRRange,
+		brokerConfig.DefaultGlobalnetClusterSize, broker.SubmarinerBrokerNamespace); err != nil {
+		klog.Errorf("Error creating globalCIDR configmap on Broker: %v", err)
+	}
+	if err = subctlData.WriteToFile(brokerDetailsFilename); err != nil {
+		klog.Errorf("Error writing the broker information: %v", err)
+	}
+	if err = subctlData.WriteConfigMap(r.Client, SubmarinerBrokerNamespace); err != nil {
+		klog.Errorf("Error writing the broker information: %v", err)
+	}
 	return nil
 }
 

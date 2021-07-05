@@ -4,4 +4,16 @@ metadata:
   name: fabric-sample
 spec:
   # Add fields here
-  foo: bar
+  brokerConfig:
+    # ipsecSubmFile:
+    globalnetEnable: false
+    # globalnetCIDRRange:
+    # globalCIDRConfigMap:
+    # defaultGlobalnetClusterSize:
+    serviceDiscoveryEnabled: true
+    componentArr:
+    - service-discovery
+    - connectivity
+    # defaultCustomDomains:
+  # joinConfig:
+  # cloudPrepareConfig:

@@ -78,7 +78,6 @@ func findClusterIPRangeFromApiserver(c client.Client) (string, error) {
 }
 
 func findClusterIPRangeFromServiceCreation(c client.Client) (string, error) {
-
 	ns := os.Getenv("WATCH_NAMESPACE")
 	// WATCH_NAMESPACE env should be set to operator's namespace, if running in operator
 	if ns == "" {

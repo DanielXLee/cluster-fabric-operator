@@ -18,7 +18,3 @@ require (
 )
 
 replace k8s.io/client-go v12.0.0+incompatible => k8s.io/client-go v0.20.2
-
-// replace github.com/googleapis/gnostic => github.com/googleapis/gnostic v0.4.1
-
-// replace k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.17.0

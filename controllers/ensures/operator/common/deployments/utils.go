@@ -33,7 +33,9 @@ func WaitForReady(c client.Client, namespace, deployment string, interval, timeo
 	// deployments := clientSet.AppsV1().Deployments(namespace)
 	deploy := &appsv1.Deployment{}
 	deployKey := types.NamespacedName{Name: deployment, Namespace: namespace}
-	c.Get(context.TODO(), deployKey, deploy)
+	if err := c.Get(context.TODO(), deployKey, deploy); err != nil {
+		return err
+	}
 	return wait.PollImmediate(interval, timeout, func() (bool, error) {
 		err := c.Get(context.TODO(), deployKey, deploy)
 		if err != nil && !errors.IsNotFound(err) {

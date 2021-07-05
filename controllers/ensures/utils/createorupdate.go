@@ -60,18 +60,18 @@ func CreateOrUpdateEmbeddedCRD(c client.Client, crdYaml string) (bool, error) {
 	return CreateOrUpdateCRD(c, crd)
 }
 
-func CreateOrUpdateDeployment(c client.Client, namespace string, deployment *appsv1.Deployment) (bool, error) {
+func CreateOrUpdateDeployment(c client.Client, deployment *appsv1.Deployment) (bool, error) {
 	return CreateOrUpdate(c, deployment)
 }
 
-func CreateOrUpdateRole(c client.Client, namespace string, role *rbacv1.Role) (bool, error) {
+func CreateOrUpdateRole(c client.Client, role *rbacv1.Role) (bool, error) {
 	return CreateOrUpdate(c, role)
 }
 
-func CreateOrUpdateRoleBinding(c client.Client, namespace string, roleBinding *rbacv1.RoleBinding) (bool, error) {
+func CreateOrUpdateRoleBinding(c client.Client, roleBinding *rbacv1.RoleBinding) (bool, error) {
 	return CreateOrUpdate(c, roleBinding)
 }
 
-func CreateOrUpdateServiceAccount(c client.Client, namespace string, sa *corev1.ServiceAccount) (bool, error) {
+func CreateOrUpdateServiceAccount(c client.Client, sa *corev1.ServiceAccount) (bool, error) {
 	return CreateOrUpdate(c, sa)
 }

@@ -17,8 +17,6 @@ limitations under the License.
 package submarinerop
 
 import (
-	"fmt"
-
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -41,7 +39,7 @@ func Ensure(c client.Client, config *rest.Config, debug bool) error {
 	if created, err := namespace.Ensure(c, consts.OperatorNamespace); err != nil {
 		return err
 	} else if created {
-		klog.Info(fmt.Sprintf("Created operator namespace: %s", consts.OperatorNamespace))
+		klog.Infof("Created operator namespace: %s", consts.OperatorNamespace)
 	}
 
 	if created, err := serviceaccount.Ensure(c, consts.OperatorNamespace); err != nil {

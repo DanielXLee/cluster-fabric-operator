@@ -97,7 +97,7 @@ func Ensure(c client.Client, namespace, operatorName, image string, debug bool) 
 		},
 	}
 
-	created, err := utils.CreateOrUpdateDeployment(c, namespace, deployment)
+	created, err := utils.CreateOrUpdateDeployment(c, deployment)
 	if err != nil {
 		return false, err
 	}

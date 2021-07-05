@@ -17,52 +17,50 @@ limitations under the License.
 package datafile
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/rest"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"github.com/DanielXLee/cluster-fabric-operator/controllers/stringset"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/rest"
+	"k8s.io/klog/v2"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/DanielXLee/cluster-fabric-operator/controllers/components"
 	"github.com/DanielXLee/cluster-fabric-operator/controllers/ensures/broker"
 )
 
-type SubctlData struct {
+type BrokerInfo struct {
 	BrokerURL        string     `json:"brokerURL"`
 	ClientToken      *v1.Secret `omitempty,json:"clientToken"`
 	IPSecPSK         *v1.Secret `omitempty,json:"ipsecPSK"`
 	ServiceDiscovery bool       `omitempty,json:"serviceDiscovery"`
 	Components       []string   `json:",omitempty"`
 	CustomDomains    *[]string  `omitempty,json:"customDomains"`
-	// Todo (revisit): The following values are moved from the broker-info.subm file to configMap
-	// on the Broker. This needs to be revisited to support seamless upgrades.
-	// https://github.com/submariner-io/submariner-operator/issues/504
-	// GlobalnetCidrRange   string `omitempty,json:"globalnetCidrRange"`
-	// GlobalnetClusterSize uint   `omitempty,json:"globalnetClusterSize"`
 }
 
-func (data *SubctlData) SetComponents(componentSet stringset.Interface) {
+func (data *BrokerInfo) SetComponents(componentSet stringset.Interface) {
 	data.Components = componentSet.Elements()
 }
 
-func (data *SubctlData) GetComponents() stringset.Interface {
+func (data *BrokerInfo) GetComponents() stringset.Interface {
 	return stringset.New(data.Components...)
 }
 
-func (data *SubctlData) IsConnectivityEnabled() bool {
+func (data *BrokerInfo) IsConnectivityEnabled() bool {
 	return data.GetComponents().Contains(components.Connectivity)
 }
 
-func (data *SubctlData) IsServiceDiscoveryEnabled() bool {
+func (data *BrokerInfo) IsServiceDiscoveryEnabled() bool {
 	return data.GetComponents().Contains(components.ServiceDiscovery) || data.ServiceDiscovery
 }
 
-func (data *SubctlData) ToString() (string, error) {
+func (data *BrokerInfo) ToString() (string, error) {
 	jsonBytes, err := json.Marshal(data)
 	if err != nil {
 		return "", err
@@ -70,8 +68,8 @@ func (data *SubctlData) ToString() (string, error) {
 	return base64.URLEncoding.EncodeToString(jsonBytes), nil
 }
 
-func NewFromString(str string) (*SubctlData, error) {
-	data := &SubctlData{}
+func NewFromString(str string) (*BrokerInfo, error) {
+	data := &BrokerInfo{}
 	bytes, err := base64.URLEncoding.DecodeString(str)
 	if err != nil {
 		return nil, err
@@ -79,7 +77,7 @@ func NewFromString(str string) (*SubctlData, error) {
 	return data, json.Unmarshal(bytes, data)
 }
 
-func (data *SubctlData) WriteToFile(filename string) error {
+func (data *BrokerInfo) WriteToFile(filename string) error {
 	dataStr, err := data.ToString()
 	if err != nil {
 		return err
@@ -92,7 +90,29 @@ func (data *SubctlData) WriteToFile(filename string) error {
 	return nil
 }
 
-func NewFromFile(filename string) (*SubctlData, error) {
+func (data *BrokerInfo) WriteConfigMap(c client.Client, brokerNamespace string) error {
+	cm := &v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "broker-info",
+			Namespace: brokerNamespace,
+		},
+	}
+	or, err := ctrl.CreateOrUpdate(context.TODO(), c, cm, func() error {
+		dataStr, err := data.ToString()
+		if err != nil {
+			return err
+		}
+		cm.Data = map[string]string{"brokerInfo": dataStr}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	klog.Infof("Configmap broker-info %s", or)
+	return nil
+}
+
+func NewFromFile(filename string) (*BrokerInfo, error) {
 	dat, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
@@ -100,11 +120,7 @@ func NewFromFile(filename string) (*SubctlData, error) {
 	return NewFromString(string(dat))
 }
 
-func NewFromCluster(c client.Client, restConfig *rest.Config, brokerNamespace, ipsecSubmFile string) (*SubctlData, error) {
-	// clientSet, err := clientset.NewForConfig(restConfig)
-	// if err != nil {
-	// 	return nil, err
-	// }
+func NewFromCluster(c client.Client, restConfig *rest.Config, brokerNamespace, ipsecSubmFile string) (*BrokerInfo, error) {
 	subCtlData, err := newFromCluster(c, brokerNamespace, ipsecSubmFile)
 	if err != nil {
 		return nil, err
@@ -113,8 +129,8 @@ func NewFromCluster(c client.Client, restConfig *rest.Config, brokerNamespace, i
 	return subCtlData, err
 }
 
-func newFromCluster(c client.Client, brokerNamespace, ipsecSubmFile string) (*SubctlData, error) {
-	subctlData := &SubctlData{}
+func newFromCluster(c client.Client, brokerNamespace, ipsecSubmFile string) (*BrokerInfo, error) {
+	subctlData := &BrokerInfo{}
 	var err error
 
 	subctlData.ClientToken, err = broker.GetClientTokenSecret(c, brokerNamespace, broker.SubmarinerBrokerAdminSA)

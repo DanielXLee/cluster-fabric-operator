@@ -32,8 +32,8 @@ func Ensure(c client.Client, namespace, yaml string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-
-	return utils.CreateOrUpdateServiceAccount(c, namespace, sa)
+	sa.SetNamespace(namespace)
+	return utils.CreateOrUpdateServiceAccount(c, sa)
 }
 
 func EnsureRole(c client.Client, namespace, yaml string) (bool, error) {
@@ -42,8 +42,8 @@ func EnsureRole(c client.Client, namespace, yaml string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-
-	return utils.CreateOrUpdateRole(c, namespace, role)
+	role.SetNamespace(namespace)
+	return utils.CreateOrUpdateRole(c, role)
 }
 
 func EnsureRoleBinding(c client.Client, namespace, yaml string) (bool, error) {
@@ -52,8 +52,8 @@ func EnsureRoleBinding(c client.Client, namespace, yaml string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-
-	return utils.CreateOrUpdateRoleBinding(c, namespace, roleBinding)
+	roleBinding.SetNamespace(namespace)
+	return utils.CreateOrUpdateRoleBinding(c, roleBinding)
 }
 
 func EnsureClusterRole(c client.Client, yaml string) (bool, error) {
@@ -62,7 +62,6 @@ func EnsureClusterRole(c client.Client, yaml string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-
 	return utils.CreateOrUpdateClusterRole(c, clusterRole)
 }
 

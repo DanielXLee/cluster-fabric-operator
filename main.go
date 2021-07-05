@@ -22,17 +22,17 @@ import (
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
-	_ "k8s.io/client-go/plugin/pkg/client/auth"
-	"k8s.io/klog/v2"
-
+	operatorv1alpha1 "github.com/DanielXLee/cluster-fabric-operator/api/v1alpha1"
+	"github.com/DanielXLee/cluster-fabric-operator/controllers"
+	submariner "github.com/submariner-io/submariner-operator/apis/submariner/v1alpha1"
+	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
-
-	operatorv1alpha1 "github.com/DanielXLee/cluster-fabric-operator/api/v1alpha1"
-	"github.com/DanielXLee/cluster-fabric-operator/controllers"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -42,6 +42,8 @@ var (
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(apiextensions.AddToScheme(scheme))
+	utilruntime.Must(submariner.AddToScheme(scheme))
 
 	utilruntime.Must(operatorv1alpha1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
@@ -51,11 +53,16 @@ func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
 	var probeAddr string
+	var deployBroker bool
+	var joinBroker bool
+
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
+	flag.BoolVar(&deployBroker, "deploy-broker", false, "Enable deploy broker for controller manager. ")
+	flag.BoolVar(&joinBroker, "join-broker", false, "Enable join managed to broker for controller manager. ")
 
 	klog.InitFlags(nil)
 	defer klog.Flush()
@@ -75,9 +82,11 @@ func main() {
 	}
 
 	if err = (&controllers.FabricReconciler{
-		Client: mgr.GetClient(),
-		Config: mgr.GetConfig(),
-		Scheme: mgr.GetScheme(),
+		Client:       mgr.GetClient(),
+		Config:       mgr.GetConfig(),
+		Scheme:       mgr.GetScheme(),
+		DeployBroker: deployBroker,
+		JoinBroker:   joinBroker,
 	}).SetupWithManager(mgr); err != nil {
 		klog.Errorf("unable to create controller Fabric: %v", err)
 		os.Exit(1)

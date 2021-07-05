@@ -113,7 +113,7 @@ type AWS struct {
 	// +kubebuilder:default=1
 	Gateways int `json:"gateways,omitempty"`
 	// AWS infra ID
-	InfraId string `json:"infraId,omitempty"`
+	InfraID string `json:"infraID,omitempty"`
 	// AWS profile to use for credentials (default "default")
 	Profile string `json:"profile,omitempty"`
 	// AWS regio
