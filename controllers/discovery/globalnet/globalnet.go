@@ -284,8 +284,8 @@ func ValidateGlobalnetConfiguration(globalnetInfo *GlobalnetInfo, netconfig Conf
 	return globalnetCIDR, nil
 }
 
-func GetGlobalNetworks(c client.Client, brokerNamespace string) (*GlobalnetInfo, *v1.ConfigMap, error) {
-	configMap, err := broker.GetGlobalnetConfigMap(c, brokerNamespace)
+func GetGlobalNetworks(reader client.Reader, brokerNamespace string) (*GlobalnetInfo, *v1.ConfigMap, error) {
+	configMap, err := broker.GetGlobalnetConfigMap(reader, brokerNamespace)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error reading configMap: %s", err)
 	}

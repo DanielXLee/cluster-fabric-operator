@@ -25,6 +25,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -135,13 +136,15 @@ func NewBrokerRoleBinding(serviceAccount, role string) *rbacv1.RoleBinding {
 	return binding
 }
 
-func GetClientTokenSecret(c client.Client, brokerNamespace, submarinerBrokerSA string) (*v1.Secret, error) {
+func GetClientTokenSecret(reader client.Reader, brokerNamespace, submarinerBrokerSA string) (*v1.Secret, error) {
 	sa := &v1.ServiceAccount{}
 	saKey := types.NamespacedName{Name: submarinerBrokerSA, Namespace: brokerNamespace}
-	if err := c.Get(context.TODO(), saKey, sa); err != nil {
-		return nil, fmt.Errorf("ServiceAccount %s get failed: %v", submarinerBrokerSA, err)
+	if err := reader.Get(context.TODO(), saKey, sa); err != nil {
+		klog.Errorf("ServiceAccount %s get failed: %v", submarinerBrokerSA, err)
+		return nil, err
 	}
 	if len(sa.Secrets) < 1 {
+		klog.Errorf("ServiceAccount %s does not have any secret", sa.Name)
 		return nil, fmt.Errorf("ServiceAccount %s does not have any secret", sa.Name)
 	}
 	brokerTokenPrefix := fmt.Sprintf("%s-token-", submarinerBrokerSA)
@@ -150,7 +153,7 @@ func GetClientTokenSecret(c client.Client, brokerNamespace, submarinerBrokerSA s
 		if strings.HasPrefix(secret.Name, brokerTokenPrefix) {
 			sec := &v1.Secret{}
 			secKey := types.NamespacedName{Name: secret.Name, Namespace: brokerNamespace}
-			err := c.Get(context.TODO(), secKey, sec)
+			err := reader.Get(context.TODO(), secKey, sec)
 			return sec, err
 		}
 	}

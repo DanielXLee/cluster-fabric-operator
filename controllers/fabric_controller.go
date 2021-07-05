@@ -103,7 +103,13 @@ func (r *FabricReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	// Join managed cluster to submeriner borker
 	if r.JoinBroker {
 		klog.Info("Join managed cluster to submeriner broker")
-		// TBD
+		brokerInfo, err := datafile.NewFromConfigMap(r.Client, SubmarinerBrokerNamespace)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		if err := r.JoinSubmarinerCluster(instance, brokerInfo); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 	return ctrl.Result{}, nil
 }

@@ -128,10 +128,10 @@ func UpdateGlobalnetConfigMap(c client.Client, namespace string,
 	return c.Update(context.TODO(), configMap)
 }
 
-func GetGlobalnetConfigMap(c client.Client, namespace string) (*v1.ConfigMap, error) {
+func GetGlobalnetConfigMap(reader client.Reader, namespace string) (*v1.ConfigMap, error) {
 	cm := &v1.ConfigMap{}
 	cmKey := types.NamespacedName{Name: GlobalCIDRConfigMapName, Namespace: namespace}
-	err := c.Get(context.TODO(), cmKey, cm)
+	err := reader.Get(context.TODO(), cmKey, cm)
 	if err != nil {
 		return nil, err
 	}

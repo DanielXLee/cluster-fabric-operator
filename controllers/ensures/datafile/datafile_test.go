@@ -33,14 +33,14 @@ const (
 var _ = Describe("datafile", func() {
 	When("Doing basic encoding to string", func() {
 		It("Should generate data", func() {
-			data := &SubctlData{}
+			data := &BrokerInfo{}
 			str, err := data.ToString()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(str).NotTo(BeEmpty())
 		})
 
 		It("Should generate base64", func() {
-			data := &SubctlData{}
+			data := &BrokerInfo{}
 			str, err := data.ToString()
 			Expect(err).NotTo(HaveOccurred())
 			_, err = base64.URLEncoding.DecodeString(str)
@@ -50,7 +50,7 @@ var _ = Describe("datafile", func() {
 
 	When("Doing decoding from string", func() {
 		It("Should recover the data", func() {
-			data := &SubctlData{BrokerURL: testBrokerURL}
+			data := &BrokerInfo{BrokerURL: testBrokerURL}
 			str, _ := data.ToString()
 			newData, err := NewFromString(str)
 			Expect(err).ShouldNot(HaveOccurred())

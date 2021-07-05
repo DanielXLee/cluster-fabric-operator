@@ -15,5 +15,6 @@ spec:
     - service-discovery
     - connectivity
     # defaultCustomDomains:
-  # joinConfig:
+  joinConfig:
+    clusterID: cls-mdl3wn46
   # cloudPrepareConfig:

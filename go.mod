@@ -3,6 +3,7 @@ module github.com/DanielXLee/cluster-fabric-operator
 go 1.16
 
 require (
+	github.com/AlecAivazis/survey/v2 v2.2.7
 	github.com/go-logr/logr v0.3.0
 	github.com/onsi/ginkgo v1.16.1
 	github.com/onsi/gomega v1.11.0

@@ -110,7 +110,7 @@ func createBrokerClusterRoleAndDefaultSA(c client.Client) error {
 }
 
 // CreateSAForCluster creates a new SA, and binds it to the submariner cluster role
-func CreateSAForCluster(c client.Client, clusterID string) (*v1.Secret, error) {
+func CreateSAForCluster(c client.Client, reader client.Reader, clusterID string) (*v1.Secret, error) {
 	saName := fmt.Sprintf(submarinerBrokerClusterSAFmt, clusterID)
 	err := CreateNewBrokerSA(c, saName)
 	if err != nil && !apierrors.IsAlreadyExists(err) {
@@ -122,7 +122,7 @@ func CreateSAForCluster(c client.Client, clusterID string) (*v1.Secret, error) {
 		return nil, fmt.Errorf("error binding sa to cluster role: %s", err)
 	}
 
-	clientToken, err := WaitForClientToken(c, saName)
+	clientToken, err := WaitForClientToken(reader, saName)
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		return nil, fmt.Errorf("error getting cluster sa token: %s", err)
 	}
@@ -153,7 +153,7 @@ func createBrokerAdministratorRoleAndSA(c client.Client) error {
 	return nil
 }
 
-func WaitForClientToken(c client.Client, submarinerBrokerSA string) (secret *v1.Secret, err error) {
+func WaitForClientToken(reader client.Reader, submarinerBrokerSA string) (secret *v1.Secret, err error) {
 	// wait for the client token to be ready, while implementing
 	// exponential backoff pattern, it will wait a total of:
 	// sum(n=0..9, 1.2^n * 5) seconds, = 130 seconds
@@ -167,7 +167,7 @@ func WaitForClientToken(c client.Client, submarinerBrokerSA string) (secret *v1.
 
 	var lastErr error
 	err = wait.ExponentialBackoff(backoff, func() (bool, error) {
-		secret, lastErr = GetClientTokenSecret(c, SubmarinerBrokerNamespace, submarinerBrokerSA)
+		secret, lastErr = GetClientTokenSecret(reader, SubmarinerBrokerNamespace, submarinerBrokerSA)
 		if lastErr != nil {
 			return false, nil
 		}

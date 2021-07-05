@@ -26,6 +26,8 @@ import (
 	"github.com/DanielXLee/cluster-fabric-operator/controllers/stringset"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -33,6 +35,9 @@ import (
 
 	"github.com/DanielXLee/cluster-fabric-operator/controllers/components"
 	"github.com/DanielXLee/cluster-fabric-operator/controllers/ensures/broker"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/cluster"
 )
 
 type BrokerInfo struct {
@@ -120,6 +125,15 @@ func NewFromFile(filename string) (*BrokerInfo, error) {
 	return NewFromString(string(dat))
 }
 
+func NewFromConfigMap(c client.Client, brokerNamespace string) (*BrokerInfo, error) {
+	cm := &v1.ConfigMap{}
+	cmKey := types.NamespacedName{Name: "broker-info", Namespace: brokerNamespace}
+	if err := c.Get(context.TODO(), cmKey, cm); err != nil {
+		return nil, err
+	}
+	return NewFromString(cm.Data["brokerInfo"])
+}
+
 func NewFromCluster(c client.Client, restConfig *rest.Config, brokerNamespace, ipsecSubmFile string) (*BrokerInfo, error) {
 	subCtlData, err := newFromCluster(c, brokerNamespace, ipsecSubmFile)
 	if err != nil {
@@ -152,27 +166,35 @@ func newFromCluster(c client.Client, brokerNamespace, ipsecSubmFile string) (*Br
 	}
 }
 
-// func (data *SubctlData) GetBrokerAdministratorConfig() (*rest.Config, error) {
-// 	// We need to try a connection to determine whether the trust chain needs to be provided
-// 	config, err := data.getAndCheckBrokerAdministratorConfig(false)
-// 	if err != nil {
-// 		if urlError, ok := err.(*url.Error); ok {
-// 			if _, ok := urlError.Unwrap().(x509.UnknownAuthorityError); ok {
-// 				// Certificate error, try with the trust chain
-// 				config, err = data.getAndCheckBrokerAdministratorConfig(true)
-// 			}
-// 		}
-// 	}
-// 	return config, err
-// }
+func (data *BrokerInfo) GetBrokerAdministratorCluster() (cluster.Cluster, error) {
+	config := data.GetBrokerAdministratorConfig()
+	scheme := runtime.NewScheme()
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	return cluster.New(config, func(clusterOptions *cluster.Options) {
+		clusterOptions.Scheme = scheme
+	})
+}
 
-// func (data *SubctlData) getAndCheckBrokerAdministratorConfig(private bool) (*rest.Config, error) {
-// 	config := data.getBrokerAdministratorConfig(private)
+func (data *BrokerInfo) GetBrokerAdministratorConfig() *rest.Config {
+	tlsClientConfig := rest.TLSClientConfig{}
+	if len(data.ClientToken.Data["ca.crt"]) != 0 {
+		tlsClientConfig.CAData = data.ClientToken.Data["ca.crt"]
+	}
+	bearerToken := data.ClientToken.Data["token"]
+	restConfig := rest.Config{
+		Host:            data.BrokerURL,
+		TLSClientConfig: tlsClientConfig,
+		BearerToken:     string(bearerToken),
+	}
+	return &restConfig
+}
+
+// func (data *BrokerInfo) getAndCheckBrokerAdministratorConfig(private bool) (*rest.Config, error) {
+// 	config := data.getConfig(private)
 // 	submClientset, err := submarinerClientset.NewForConfig(config)
 // 	if err != nil {
 // 		return config, err
 // 	}
-// 	config.g
 // 	// This attempts to determine whether we can connect, by trying to access a Submariner object
 // 	// Successful connections result in either the object, or a “not found” error; anything else
 // 	// likely means we couldn’t connect
@@ -183,9 +205,9 @@ func newFromCluster(c client.Client, brokerNamespace, ipsecSubmFile string) (*Br
 // 	return config, err
 // }
 
-// func (data *SubctlData) getBrokerAdministratorConfig(private bool) *rest.Config {
+// func (data *BrokerInfo) getConfig() *rest.Config {
 // 	tlsClientConfig := rest.TLSClientConfig{}
-// 	if private {
+// 	if len(data.ClientToken.Data["ca.crt"]) != 0 {
 // 		tlsClientConfig.CAData = data.ClientToken.Data["ca.crt"]
 // 	}
 // 	bearerToken := data.ClientToken.Data["token"]
