@@ -34,11 +34,6 @@ const deploymentWaitTime = 10 * time.Minute
 
 // Ensure the operator is deployed, and running
 func Ensure(c client.Client, namespace, operatorName, image string, debug bool) (bool, error) {
-	// clientSet, err := clientset.NewForConfig(restConfig)
-	// if err != nil {
-	// 	return false, err
-	// }
-
 	replicas := int32(1)
 	imagePullPolicy := v1.PullAlways
 	// If we are running with a local development image, don't try to pull from registry

@@ -21,9 +21,10 @@ import (
 	"fmt"
 
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog/v2"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -42,32 +43,28 @@ type ClusterInfo struct {
 
 func CreateGlobalnetConfigMap(c client.Client, globalnetEnabled bool, defaultGlobalCidrRange string,
 	defaultGlobalClusterSize uint, namespace string) error {
-	// clientset, err := kubernetes.NewForConfig(config)
-	// if err != nil {
-	// 	return fmt.Errorf("error creating the core kubernetes clientset: %s", err)
-	// }
-
-	gnConfigMap, err := NewGlobalnetConfigMap(globalnetEnabled, defaultGlobalCidrRange, defaultGlobalClusterSize, namespace)
+	cm := &v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      GlobalCIDRConfigMapName,
+			Namespace: namespace,
+		},
+	}
+	or, err := ctrl.CreateOrUpdate(context.TODO(), c, cm, func() error {
+		return GeneralGlobalnetConfigMap(cm, globalnetEnabled, defaultGlobalCidrRange, defaultGlobalClusterSize)
+	})
 	if err != nil {
-		return fmt.Errorf("error creating config map: %s", err)
+		klog.Errorf("error %s globalnet configmap: %v", or, err)
 	}
-
-	err = c.Create(context.TODO(), gnConfigMap)
-	if err == nil || errors.IsAlreadyExists(err) {
-		return nil
-	}
-	return err
+	return nil
 }
 
-func NewGlobalnetConfigMap(globalnetEnabled bool, defaultGlobalCidrRange string,
-	defaultGlobalClusterSize uint, namespace string) (*v1.ConfigMap, error) {
+func GeneralGlobalnetConfigMap(cm *v1.ConfigMap, globalnetEnabled bool, defaultGlobalCidrRange string, defaultGlobalClusterSize uint) error {
 	labels := map[string]string{
 		"component": "submariner-globalnet",
 	}
-
 	cidrRange, err := json.Marshal(defaultGlobalCidrRange)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	var data map[string]string
@@ -84,16 +81,9 @@ func NewGlobalnetConfigMap(globalnetEnabled bool, defaultGlobalCidrRange string,
 			ClusterInfoKey:     "[]",
 		}
 	}
-
-	cm := &v1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      GlobalCIDRConfigMapName,
-			Namespace: namespace,
-			Labels:    labels,
-		},
-		Data: data,
-	}
-	return cm, nil
+	cm.ObjectMeta.Labels = labels
+	cm.Data = data
+	return nil
 }
 
 func UpdateGlobalnetConfigMap(c client.Client, namespace string,
@@ -131,8 +121,7 @@ func UpdateGlobalnetConfigMap(c client.Client, namespace string,
 func GetGlobalnetConfigMap(reader client.Reader, namespace string) (*v1.ConfigMap, error) {
 	cm := &v1.ConfigMap{}
 	cmKey := types.NamespacedName{Name: GlobalCIDRConfigMapName, Namespace: namespace}
-	err := reader.Get(context.TODO(), cmKey, cm)
-	if err != nil {
+	if err := reader.Get(context.TODO(), cmKey, cm); err != nil {
 		return nil, err
 	}
 	return cm, nil

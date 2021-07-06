@@ -86,9 +86,10 @@ func (r *FabricReconciler) DeploySubmerinerBroker(instance *operatorv1alpha1.Fab
 	}
 
 	if brokerConfig.GlobalnetEnable {
-		err = globalnet.ValidateExistingGlobalNetworks(r.Reader, consts.SubmarinerBrokerNamespace)
-		klog.Errorf("Error validating existing globalCIDR configmap", err)
-		return err
+		if err = globalnet.ValidateExistingGlobalNetworks(r.Reader, consts.SubmarinerBrokerNamespace); err != nil {
+			klog.Errorf("Error validating existing globalCIDR configmap: %v", err)
+			return err
+		}
 	}
 
 	if err = broker.CreateGlobalnetConfigMap(r.Client, brokerConfig.GlobalnetEnable, brokerConfig.GlobalnetCIDRRange,

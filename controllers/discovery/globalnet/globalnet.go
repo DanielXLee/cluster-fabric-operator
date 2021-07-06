@@ -287,31 +287,35 @@ func ValidateGlobalnetConfiguration(globalnetInfo *GlobalnetInfo, netconfig Conf
 func GetGlobalNetworks(reader client.Reader, brokerNamespace string) (*GlobalnetInfo, *v1.ConfigMap, error) {
 	configMap, err := broker.GetGlobalnetConfigMap(reader, brokerNamespace)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error reading configMap: %s", err)
+		return nil, nil, err
 	}
 
 	globalnetInfo := GlobalnetInfo{}
 	err = json.Unmarshal([]byte(configMap.Data[broker.GlobalnetStatusKey]), &globalnetInfo.GlobalnetEnabled)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error reading globalnetEnabled status: %s", err)
+		klog.Errorf("error reading globalnetEnabled status: %v", err)
+		return nil, nil, err
 	}
 
 	if globalnetInfo.GlobalnetEnabled {
 		err = json.Unmarshal([]byte(configMap.Data[broker.GlobalnetClusterSize]), &globalnetInfo.GlobalnetClusterSize)
 		if err != nil {
-			return nil, nil, fmt.Errorf("error reading GlobalnetClusterSize: %s", err)
+			klog.Errorf("error reading GlobalnetClusterSize: %v", err)
+			return nil, nil, err
 		}
 
 		err = json.Unmarshal([]byte(configMap.Data[broker.GlobalnetCidrRange]), &globalnetInfo.GlobalnetCidrRange)
 		if err != nil {
-			return nil, nil, fmt.Errorf("error reading GlobalnetCidrRange: --> %s", err)
+			klog.Errorf("error reading GlobalnetCidrRange: %v", err)
+			return nil, nil, err
 		}
 	}
 
 	var clusterInfo []broker.ClusterInfo
 	err = json.Unmarshal([]byte(configMap.Data[broker.ClusterInfoKey]), &clusterInfo)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error reading globalnet clusterInfo: %s", err)
+		klog.Errorf("error reading globalnet clusterInfo: %v", err)
+		return nil, nil, err
 	}
 
 	var globalNetworks = make(map[string]*GlobalNetwork)
@@ -342,7 +346,8 @@ func AssignGlobalnetIPs(globalnetInfo *GlobalnetInfo, netconfig Config) (string,
 			// no globalCidr configured on this cluster
 			globalnetCIDR, err = AllocateGlobalCIDR(globalnetInfo)
 			if err != nil {
-				return "", fmt.Errorf("globalnet failed %s", err)
+				klog.Errorf("globalnet failed: %v", err)
+				return "", err
 			}
 			klog.Infof("Allocated GlobalCIDR: %s", globalnetCIDR)
 		}
@@ -383,7 +388,6 @@ func IsValidCIDR(cidr string) error {
 	if ip.IsLinkLocalMulticast() {
 		return fmt.Errorf("%s can't be in link-local multicast range", cidr)
 	}
-
 	return nil
 }
 
@@ -398,10 +402,10 @@ func ValidateExistingGlobalNetworks(reader client.Reader, namespace string) erro
 	}
 
 	if globalnetInfo != nil {
-		err = IsValidCIDR(globalnetInfo.GlobalnetCidrRange)
-		klog.Errorf("invalid GlobalnetCidrRange: %v", err)
-		return err
+		if err = IsValidCIDR(globalnetInfo.GlobalnetCidrRange); err != nil {
+			klog.Errorf("invalid GlobalnetCidrRange: %v", err)
+			return err
+		}
 	}
-
 	return nil
 }

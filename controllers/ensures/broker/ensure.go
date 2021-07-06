@@ -65,11 +65,6 @@ func Ensure(c client.Client, config *rest.Config, componentArr []string, crds bo
 		}
 	}
 
-	// clientset, err := kubernetes.NewForConfig(config)
-	// if err != nil {
-	// 	return fmt.Errorf("error creating the core kubernetes clientset: %s", err)
-	// }
-
 	// Create the namespace
 	err := CreateNewBrokerNamespace(c)
 	if err != nil && !apierrors.IsAlreadyExists(err) {
