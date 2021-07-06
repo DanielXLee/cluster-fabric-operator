@@ -26,11 +26,6 @@ import (
 
 // Ensure functions updates or installs the operator CRDs in the cluster
 func Ensure(c client.Client, namespace string) (bool, error) {
-	// c, err := clientset.NewForConfig(restConfig)
-	// if err != nil {
-	// 	return false, err
-	// }
-
 	createdSA, err := ensureServiceAccounts(c, namespace)
 	if err != nil {
 		return false, err

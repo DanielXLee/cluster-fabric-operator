@@ -18,7 +18,6 @@ package datafile
 
 import (
 	"encoding/base64"
-	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -94,7 +93,7 @@ var _ = Describe("datafile", func() {
 	// })
 })
 
-func TestDataFile(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Subctl datafile")
-}
+// func TestDataFile(t *testing.T) {
+// 	RegisterFailHandler(Fail)
+// 	RunSpecs(t, "Subctl datafile")
+// }

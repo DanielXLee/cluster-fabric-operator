@@ -22,6 +22,8 @@ import (
 	submarinerv1a1 "github.com/submariner-io/submariner-operator/apis/submariner/v1alpha1"
 	"k8s.io/klog/v2"
 
+	consts "github.com/DanielXLee/cluster-fabric-operator/controllers/ensures"
+
 	"github.com/DanielXLee/cluster-fabric-operator/controllers/discovery/globalnet"
 	"github.com/DanielXLee/cluster-fabric-operator/controllers/ensures/broker"
 	"github.com/DanielXLee/cluster-fabric-operator/controllers/ensures/datafile"
@@ -51,66 +53,53 @@ func (r *FabricReconciler) DeploySubmerinerBroker(instance *operatorv1alpha1.Fab
 
 	if valid, err := isValidGlobalnetConfig(instance); !valid {
 		klog.Errorf("Invalid GlobalCIDR configuration: %v", err)
+		return err
 	}
 
 	klog.Info("Setting up broker RBAC")
 	if err := broker.Ensure(r.Client, r.Config, brokerConfig.ComponentArr, false); err != nil {
 		klog.Errorf("Error setting up broker RBAC: %v", err)
+		return err
 	}
 	klog.Info("Deploying the Submariner operator")
 	if err := submarinerop.Ensure(r.Client, r.Config, true); err != nil {
 		klog.Errorf("Error deploying the operator: %v", err)
+		return err
 	}
 	klog.Info("Deploying the broker")
 	if err := brokercr.Ensure(r.Client, populateBrokerSpec(instance)); err != nil {
 		klog.Errorf("Broker deployment failed: %v", err)
+		return err
 	}
 
-	klog.Infof("Creating %s file", brokerDetailsFilename)
-
-	// // If deploy-broker is retried we will attempt to re-use the existing IPsec PSK secret
-	// if brokerConfig.IpsecSubmFile == "" {
-	// 	if _, err := datafile.NewFromFile(brokerDetailsFilename); err == nil {
-	// 		brokerConfig.IpsecSubmFile = brokerDetailsFilename
-	// 		klog.Infof("Reusing IPsec PSK from existing %s", brokerDetailsFilename)
-	// 	} else {
-	// 		klog.Infof("A new IPsec PSK will be generated for %s", brokerDetailsFilename)
-	// 	}
-	// }
-
-	subctlData, err := datafile.NewFromCluster(r.Client, r.Config, broker.SubmarinerBrokerNamespace)
+	brokerInfo, err := datafile.NewFromCluster(r.Client, r.Config, consts.SubmarinerBrokerNamespace)
 	if err != nil {
 		klog.Errorf("Error retrieving preparing the subm data file: %v", err)
-	}
-	newFilename, err := datafile.BackupIfExists(brokerDetailsFilename)
-	if err != nil {
-		klog.Errorf("Error backing up the brokerfile: %v", err)
-	}
-	if newFilename != "" {
-		klog.Infof("Backed up previous %s to %s", brokerDetailsFilename, newFilename)
+		return err
 	}
 
-	subctlData.ServiceDiscovery = brokerConfig.ServiceDiscoveryEnabled
-	subctlData.SetComponents(componentSet)
+	brokerInfo.ServiceDiscovery = brokerConfig.ServiceDiscoveryEnabled
+	brokerInfo.SetComponents(componentSet)
 
 	if len(brokerConfig.DefaultCustomDomains) > 0 {
-		subctlData.CustomDomains = &brokerConfig.DefaultCustomDomains
+		brokerInfo.CustomDomains = &brokerConfig.DefaultCustomDomains
 	}
 
 	if brokerConfig.GlobalnetEnable {
-		err = globalnet.ValidateExistingGlobalNetworks(r.Reader, broker.SubmarinerBrokerNamespace)
+		err = globalnet.ValidateExistingGlobalNetworks(r.Reader, consts.SubmarinerBrokerNamespace)
 		klog.Errorf("Error validating existing globalCIDR configmap", err)
+		return err
 	}
 
 	if err = broker.CreateGlobalnetConfigMap(r.Client, brokerConfig.GlobalnetEnable, brokerConfig.GlobalnetCIDRRange,
-		brokerConfig.DefaultGlobalnetClusterSize, broker.SubmarinerBrokerNamespace); err != nil {
+		brokerConfig.DefaultGlobalnetClusterSize, consts.SubmarinerBrokerNamespace); err != nil {
 		klog.Errorf("Error creating globalCIDR configmap on Broker: %v", err)
+		return err
 	}
-	// if err = subctlData.WriteToFile(brokerDetailsFilename); err != nil {
-	// 	klog.Errorf("Error writing the broker information: %v", err)
-	// }
-	if err = subctlData.WriteConfigMap(r.Client, SubmarinerBrokerNamespace); err != nil {
+
+	if err = brokerInfo.WriteConfigMap(r.Client, consts.SubmarinerBrokerNamespace); err != nil {
 		klog.Errorf("Error writing the broker information: %v", err)
+		return err
 	}
 	return nil
 }

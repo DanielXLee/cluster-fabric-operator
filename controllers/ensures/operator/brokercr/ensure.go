@@ -21,17 +21,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	consts "github.com/DanielXLee/cluster-fabric-operator/controllers/ensures"
 	"github.com/DanielXLee/cluster-fabric-operator/controllers/ensures/utils"
-)
-
-const (
-	BrokerName = "submariner-broker"
 )
 
 func Ensure(c client.Client, brokerSpec submariner.BrokerSpec) error {
 	brokerCR := &submariner.Broker{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: BrokerName,
+			Name:      consts.SubmarinerBrokerName,
+			Namespace: consts.SubmarinerOperatorNamespace,
 		},
 		Spec: brokerSpec,
 	}

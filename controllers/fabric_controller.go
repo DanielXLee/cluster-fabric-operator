@@ -27,6 +27,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	consts "github.com/DanielXLee/cluster-fabric-operator/controllers/ensures"
+
 	"github.com/DanielXLee/cluster-fabric-operator/controllers/ensures/datafile"
 
 	operatorv1alpha1 "github.com/DanielXLee/cluster-fabric-operator/api/v1alpha1"
@@ -42,11 +44,6 @@ type FabricReconciler struct {
 	DeployBroker bool
 	JoinBroker   bool
 }
-
-const brokerDetailsFilename = "broker-info.subm"
-const (
-	SubmarinerBrokerNamespace = "submariner-k8s-broker"
-)
 
 // var defaultComponents = []string{components.ServiceDiscovery, components.Connectivity}
 var validComponents = []string{components.ServiceDiscovery, components.Connectivity}
@@ -64,7 +61,7 @@ var validComponents = []string{components.ServiceDiscovery, components.Connectiv
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
-func (r *FabricReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *FabricReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, err error) {
 	klog.Infof("Start reconciling Fabric: %s", req.NamespacedName)
 	instance := &operatorv1alpha1.Fabric{}
 
@@ -78,6 +75,11 @@ func (r *FabricReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	originalInstance := instance.DeepCopy()
 	// Always attempt to patch the status after each reconciliation.
 	defer func() {
+		if err != nil {
+			instance.Status.Phase = operatorv1alpha1.PhaseFailed
+		} else {
+			instance.Status.Phase = operatorv1alpha1.PhaseRunning
+		}
 		if reflect.DeepEqual(originalInstance.Status, instance.Status) {
 			return
 		}
@@ -97,7 +99,7 @@ func (r *FabricReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	// Join managed cluster to submeriner borker
 	if r.JoinBroker {
 		klog.Info("Join managed cluster to submeriner broker")
-		brokerInfo, err := datafile.NewFromConfigMap(r.Client, SubmarinerBrokerNamespace)
+		brokerInfo, err := datafile.NewFromConfigMap(r.Client, consts.SubmarinerBrokerNamespace)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -105,6 +107,7 @@ func (r *FabricReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			return ctrl.Result{}, err
 		}
 	}
+	klog.Infof("Finished reconciling Fabric: %s", req.NamespacedName)
 	return ctrl.Result{}, nil
 }
 

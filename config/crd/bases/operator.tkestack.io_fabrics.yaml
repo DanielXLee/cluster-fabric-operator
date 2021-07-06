@@ -13,10 +13,23 @@ spec:
     kind: Fabric
     listKind: FabricList
     plural: fabrics
+    shortNames:
+    - fb
     singular: fabric
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    - description: Current Cluster Phase
+      jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Created At
+      type: string
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: Fabric is the Schema for the fabrics API
@@ -247,6 +260,10 @@ spec:
             type: object
           status:
             description: FabricStatus defines the observed state of Fabric
+            properties:
+              phase:
+                description: Phase is the fabric operator running phase.
+                type: string
             type: object
         type: object
     served: true

@@ -22,7 +22,6 @@ import (
 	"encoding/json"
 	"io/ioutil"
 
-	"github.com/DanielXLee/cluster-fabric-operator/controllers/stringset"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -32,11 +31,14 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/DanielXLee/cluster-fabric-operator/controllers/components"
-	"github.com/DanielXLee/cluster-fabric-operator/controllers/ensures/broker"
+	"github.com/DanielXLee/cluster-fabric-operator/controllers/stringset"
+
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/cluster"
+
+	"github.com/DanielXLee/cluster-fabric-operator/controllers/components"
+	"github.com/DanielXLee/cluster-fabric-operator/controllers/ensures/broker"
 )
 
 type BrokerInfo struct {
@@ -134,36 +136,24 @@ func NewFromConfigMap(c client.Client, brokerNamespace string) (*BrokerInfo, err
 }
 
 func NewFromCluster(c client.Client, restConfig *rest.Config, brokerNamespace string) (*BrokerInfo, error) {
-	subCtlData, err := newFromCluster(c, brokerNamespace)
+	brokerInfo, err := newFromCluster(c, brokerNamespace)
 	if err != nil {
 		return nil, err
 	}
-	subCtlData.BrokerURL = restConfig.Host + restConfig.APIPath
-	return subCtlData, err
+	brokerInfo.BrokerURL = restConfig.Host + restConfig.APIPath
+	return brokerInfo, err
 }
 
 func newFromCluster(c client.Client, brokerNamespace string) (*BrokerInfo, error) {
-	subctlData := &BrokerInfo{}
+	brokerInfo := &BrokerInfo{}
 	var err error
 
-	subctlData.ClientToken, err = broker.GetClientTokenSecret(c, brokerNamespace, broker.SubmarinerBrokerAdminSA)
+	brokerInfo.ClientToken, err = broker.GetClientTokenSecret(c, brokerNamespace, broker.SubmarinerBrokerAdminSA)
 	if err != nil {
 		return nil, err
 	}
-	subctlData.IPSecPSK, err = newIPSECPSKSecret()
-	return subctlData, err
-	// if ipsecSubmFile != "" {
-	// 	datafile, err := NewFromFile(ipsecSubmFile)
-	// 	if err != nil {
-	// 		return nil, fmt.Errorf("error happened trying to import IPsec PSK from subm file: %s: %s", ipsecSubmFile,
-	// 			err.Error())
-	// 	}
-	// 	subctlData.IPSecPSK = datafile.IPSecPSK
-	// 	return subctlData, err
-	// } else {
-	// 	subctlData.IPSecPSK, err = newIPSECPSKSecret()
-	// 	return subctlData, err
-	// }
+	brokerInfo.IPSecPSK, err = newIPSECPSKSecret()
+	return brokerInfo, err
 }
 
 func (data *BrokerInfo) GetBrokerAdministratorCluster() (cluster.Cluster, error) {
@@ -188,33 +178,3 @@ func (data *BrokerInfo) GetBrokerAdministratorConfig() *rest.Config {
 	}
 	return &restConfig
 }
-
-// func (data *BrokerInfo) getAndCheckBrokerAdministratorConfig(private bool) (*rest.Config, error) {
-// 	config := data.getConfig(private)
-// 	submClientset, err := submarinerClientset.NewForConfig(config)
-// 	if err != nil {
-// 		return config, err
-// 	}
-// 	// This attempts to determine whether we can connect, by trying to access a Submariner object
-// 	// Successful connections result in either the object, or a “not found” error; anything else
-// 	// likely means we couldn’t connect
-// 	_, err = submClientset.SubmarinerV1().Clusters(string(data.ClientToken.Data["namespace"])).List(metav1.ListOptions{})
-// 	if errors.IsNotFound(err) {
-// 		err = nil
-// 	}
-// 	return config, err
-// }
-
-// func (data *BrokerInfo) getConfig() *rest.Config {
-// 	tlsClientConfig := rest.TLSClientConfig{}
-// 	if len(data.ClientToken.Data["ca.crt"]) != 0 {
-// 		tlsClientConfig.CAData = data.ClientToken.Data["ca.crt"]
-// 	}
-// 	bearerToken := data.ClientToken.Data["token"]
-// 	restConfig := rest.Config{
-// 		Host:            data.BrokerURL,
-// 		TLSClientConfig: tlsClientConfig,
-// 		BearerToken:     string(bearerToken),
-// 	}
-// 	return &restConfig
-// }

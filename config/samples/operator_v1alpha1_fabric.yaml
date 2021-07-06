@@ -6,7 +6,7 @@ spec:
   # Add fields here
   brokerConfig:
     # ipsecSubmFile:
-    globalnetEnable: false
+    globalnetEnable: true
     # globalnetCIDRRange:
     # globalCIDRConfigMap:
     # defaultGlobalnetClusterSize:
@@ -17,4 +17,6 @@ spec:
     # defaultCustomDomains:
   joinConfig:
     clusterID: cls-mdl3wn46
+    natTraversal: false
+    labelGateway: true
   # cloudPrepareConfig:

@@ -356,7 +356,8 @@ func AssignGlobalnetIPs(globalnetInfo *GlobalnetInfo, netconfig Config) (string,
 			// globalCidr as specified by the user
 			err := CheckOverlappingCidrs(globalnetInfo, netconfig)
 			if err != nil {
-				return "", fmt.Errorf("error validating overlapping GlobalCIDRs %s: %s", globalnetCIDR, err)
+				klog.Errorf("error validating overlapping GlobalCIDRs %s: %v", globalnetCIDR, err)
+				return "", err
 			}
 			klog.Infof("GlobalCIDR is: %s", globalnetCIDR)
 		}

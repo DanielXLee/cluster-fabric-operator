@@ -25,11 +25,6 @@ import (
 
 // Ensure functions updates or installs the operator CRDs in the cluster
 func Ensure(c client.Client) (bool, error) {
-	// crdUpdater, err := crdutils.NewFromRestConfig(restConfig)
-	// if err != nil {
-	// 	return false, err
-	// }
-
 	// Attempt to update or create the CRD definitions
 	// TODO(majopela): In the future we may want to report when we have updated the existing
 	//                 CRD definition with new versions

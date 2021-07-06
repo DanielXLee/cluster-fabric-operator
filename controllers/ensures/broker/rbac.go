@@ -27,6 +27,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	consts "github.com/DanielXLee/cluster-fabric-operator/controllers/ensures"
 )
 
 const (
@@ -41,7 +43,7 @@ func NewBrokerSA(submarinerBrokerSA string) *v1.ServiceAccount {
 	sa := &v1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      submarinerBrokerSA,
-			Namespace: SubmarinerBrokerNamespace,
+			Namespace: consts.SubmarinerBrokerNamespace,
 		},
 	}
 
@@ -53,7 +55,7 @@ func NewBrokerAdminRole() *rbacv1.Role {
 	return &rbacv1.Role{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      submarinerBrokerAdminRole,
-			Namespace: SubmarinerBrokerNamespace,
+			Namespace: consts.SubmarinerBrokerNamespace,
 		},
 		Rules: []rbacv1.PolicyRule{
 			{
@@ -90,7 +92,7 @@ func NewBrokerClusterRole() *rbacv1.Role {
 	return &rbacv1.Role{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      submarinerBrokerClusterRole,
-			Namespace: SubmarinerBrokerNamespace,
+			Namespace: consts.SubmarinerBrokerNamespace,
 		},
 		Rules: []rbacv1.PolicyRule{
 			{
@@ -112,12 +114,12 @@ func NewBrokerClusterRole() *rbacv1.Role {
 	}
 }
 
-// Create a role for to bind the cluster admin (subctl) SA
+// Create a role for to bind the cluster admin SA
 func NewBrokerRoleBinding(serviceAccount, role string) *rbacv1.RoleBinding {
 	binding := &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-%s", serviceAccount, role),
-			Namespace: SubmarinerBrokerNamespace,
+			Namespace: consts.SubmarinerBrokerNamespace,
 		},
 		RoleRef: rbacv1.RoleRef{
 			APIGroup: "rbac.authorization.k8s.io",

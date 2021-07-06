@@ -45,7 +45,19 @@ type FabricSpec struct {
 type FabricStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+
+	// Phase is the fabric operator running phase.
+	// +optional
+	Phase Phase `json:"phase,omitempty"`
 }
+
+const (
+	PhaseRunning Phase = "Running"
+	PhaseFailed  Phase = "Failed"
+)
+
+// Phase is the phase of the installation.
+type Phase string
 
 type BrokerConfig struct {
 	// GlobalnetEnable represents enable/disable overlapping CIDRs in connecting clusters (default disabled).
@@ -212,7 +224,10 @@ type CommonPrepareConfig struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-
+// +kubebuilder:resource:path=fabrics,shortName=fb,scope=Namespaced
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=.metadata.creationTimestamp
+// +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=.status.phase,description="Current Cluster Phase"
+// +kubebuilder:printcolumn:name="Created At",type=string,JSONPath=.metadata.creationTimestamp
 // Fabric is the Schema for the fabrics API
 type Fabric struct {
 	metav1.TypeMeta   `json:",inline"`

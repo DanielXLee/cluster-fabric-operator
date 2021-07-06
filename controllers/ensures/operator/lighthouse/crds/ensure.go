@@ -24,10 +24,5 @@ import (
 )
 
 func Ensure(c client.Client) (bool, error) {
-	// crdUpdater, err := crdutils.NewFromRestConfig(restConfig)
-	// if err != nil {
-	// 	return false, fmt.Errorf("error creating the api extensions client: %s", err)
-	// }
-
 	return utils.CreateOrUpdateEmbeddedCRD(c, embeddedyamls.Manifests_deploy_crds_submariner_io_servicediscoveries_yaml)
 }

@@ -36,11 +36,6 @@ func init() {
 }
 
 func Ensure(c client.Client, namespace string, serviceDiscoverySpec *submariner.ServiceDiscoverySpec) error {
-	// client, err := submarinerClientset.NewForConfig(config)
-	// if err != nil {
-	// 	return err
-	// }
-
 	sd := &submariner.ServiceDiscovery{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,

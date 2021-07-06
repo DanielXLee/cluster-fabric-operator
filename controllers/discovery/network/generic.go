@@ -81,7 +81,7 @@ func findClusterIPRangeFromServiceCreation(c client.Client) (string, error) {
 	ns := os.Getenv("WATCH_NAMESPACE")
 	// WATCH_NAMESPACE env should be set to operator's namespace, if running in operator
 	if ns == "" {
-		// otherwise, it should be called from subctl command, so use "default" namespace
+		// use "default" namespace
 		ns = "default"
 	}
 	// find service cidr based on https://stackoverflow.com/questions/44190607/how-do-you-find-the-cluster-service-cidr-of-a-kubernetes-cluster

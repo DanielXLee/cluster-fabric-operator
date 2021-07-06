@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -52,12 +51,12 @@ func (cn *ClusterNetwork) Show() {
 	}
 }
 
-func (cn *ClusterNetwork) Log(logger logr.Logger) {
-	logger.Info("Discovered K8s network details",
-		"plugin", cn.NetworkPlugin,
-		"clusterCIDRs", cn.PodCIDRs,
-		"serviceCIDRs", cn.ServiceCIDRs)
-}
+// func (cn *ClusterNetwork) Log(logger logr.Logger) {
+// 	logger.Info("Discovered K8s network details",
+// 		"plugin", cn.NetworkPlugin,
+// 		"clusterCIDRs", cn.PodCIDRs,
+// 		"serviceCIDRs", cn.ServiceCIDRs)
+// }
 
 func (cn *ClusterNetwork) IsComplete() bool {
 	return cn != nil && len(cn.ServiceCIDRs) > 0 && len(cn.PodCIDRs) > 0

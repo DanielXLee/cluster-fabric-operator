@@ -36,25 +36,25 @@ func Ensure(c client.Client, config *rest.Config, debug bool) error {
 		klog.Info("Created operator CRDs")
 	}
 
-	if created, err := namespace.Ensure(c, consts.OperatorNamespace); err != nil {
+	if created, err := namespace.Ensure(c, consts.SubmarinerOperatorNamespace); err != nil {
 		return err
 	} else if created {
-		klog.Infof("Created operator namespace: %s", consts.OperatorNamespace)
+		klog.Infof("Created operator namespace: %s", consts.SubmarinerOperatorNamespace)
 	}
 
-	if created, err := serviceaccount.Ensure(c, consts.OperatorNamespace); err != nil {
+	if created, err := serviceaccount.Ensure(c, consts.SubmarinerOperatorNamespace); err != nil {
 		return err
 	} else if created {
 		klog.Info("Created operator service account and role")
 	}
 
-	if created, err := lighthouseop.Ensure(c, config, consts.OperatorNamespace); err != nil {
+	if created, err := lighthouseop.Ensure(c, config, consts.SubmarinerOperatorNamespace); err != nil {
 		return err
 	} else if created {
 		klog.Info("Created Lighthouse service accounts and roles")
 	}
 
-	if created, err := deployment.Ensure(c, consts.OperatorNamespace, consts.OperatorImage, debug); err != nil {
+	if created, err := deployment.Ensure(c, consts.SubmarinerOperatorNamespace, consts.SubmarinerOperatorImage, debug); err != nil {
 		return err
 	} else if created {
 		klog.Info("Deployed the operator successfully")

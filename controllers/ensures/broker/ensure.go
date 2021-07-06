@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/DanielXLee/cluster-fabric-operator/controllers/components"
+	consts "github.com/DanielXLee/cluster-fabric-operator/controllers/ensures"
 	"github.com/DanielXLee/cluster-fabric-operator/controllers/ensures/gateway"
 	"github.com/DanielXLee/cluster-fabric-operator/controllers/ensures/lighthouse"
 	"github.com/DanielXLee/cluster-fabric-operator/controllers/ensures/utils"
@@ -130,7 +131,7 @@ func CreateSAForCluster(c client.Client, reader client.Reader, clusterID string)
 }
 
 func createBrokerAdministratorRoleAndSA(c client.Client) error {
-	// Create the SA we need for the managing the broker (from subctl, etc..)
+	// Create the SA we need for the managing the broker
 	err := CreateNewBrokerSA(c, SubmarinerBrokerAdminSA)
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		klog.Errorf("error creating the broker admin service account: %v", err)
@@ -140,7 +141,7 @@ func createBrokerAdministratorRoleAndSA(c client.Client) error {
 	// Create the broker admin role
 	_, err = CreateOrUpdateBrokerAdminRole(c)
 	if err != nil {
-		klog.Errorf("error creating subctl role: %v", err)
+		klog.Errorf("error creating broker role: %v", err)
 		return err
 	}
 
@@ -167,7 +168,7 @@ func WaitForClientToken(reader client.Reader, submarinerBrokerSA string) (secret
 
 	var lastErr error
 	err = wait.ExponentialBackoff(backoff, func() (bool, error) {
-		secret, lastErr = GetClientTokenSecret(reader, SubmarinerBrokerNamespace, submarinerBrokerSA)
+		secret, lastErr = GetClientTokenSecret(reader, consts.SubmarinerBrokerNamespace, submarinerBrokerSA)
 		if lastErr != nil {
 			return false, nil
 		}

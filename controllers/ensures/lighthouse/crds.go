@@ -17,10 +17,10 @@ package lighthouse
 
 import (
 	"context"
-	"fmt"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/DanielXLee/cluster-fabric-operator/controllers/ensures/operator/common/embeddedyamls"
@@ -41,22 +41,26 @@ func Ensure(crdUpdater crdutils.CRDUpdater, c client.Client, isBroker bool) (boo
 
 	err := crdUpdater.Delete(context.TODO(), "serviceimports.lighthouse.submariner.io", metav1.DeleteOptions{})
 	if err != nil && !errors.IsNotFound(err) {
-		return false, fmt.Errorf("error deleting the obsolete ServiceImport CRD: %s", err)
+		klog.Errorf("error deleting the obsolete ServiceImport CRD: %v", err)
+		return false, err
 	}
 	err = crdUpdater.Delete(context.TODO(), "serviceexports.lighthouse.submariner.io", metav1.DeleteOptions{})
 	if err != nil && !errors.IsNotFound(err) {
-		return false, fmt.Errorf("error deleting the obsolete ServiceExport CRD: %s", err)
+		klog.Errorf("error deleting the obsolete ServiceExport CRD: %v", err)
+		return false, err
 	}
 	err = crdUpdater.Delete(context.TODO(), "multiclusterservices.lighthouse.submariner.io", metav1.DeleteOptions{})
 	if err != nil && !errors.IsNotFound(err) {
-		return false, fmt.Errorf("error deleting the obsolete MultiClusterServices CRD: %s", err)
+		klog.Errorf("error deleting the obsolete MultiClusterServices CRD: %v", err)
+		return false, err
 	}
 
 	installedMCSSI, err := utils.CreateOrUpdateEmbeddedCRD(c,
 		embeddedyamls.Manifests_deploy_mcsapi_crds_multicluster_x_k8s_io_serviceimports_yaml)
 
 	if err != nil {
-		return installedMCSSI, fmt.Errorf("error creating the MCS ServiceImport CRD: %s", err)
+		klog.Errorf("error creating the MCS ServiceImport CRD: %v", err)
+		return installedMCSSI, err
 	}
 
 	// The broker does not need the ServiceExport or ServiceDiscovery
@@ -68,11 +72,13 @@ func Ensure(crdUpdater crdutils.CRDUpdater, c client.Client, isBroker bool) (boo
 		embeddedyamls.Manifests_deploy_mcsapi_crds_multicluster_x_k8s_io_serviceexports_yaml)
 
 	if err != nil {
-		return installedMCSSI || installedMCSSE, fmt.Errorf("error creating the MCS ServiceExport CRD: %s", err)
+		klog.Errorf("error creating the MCS ServiceExport CRD: %v", err)
+		return installedMCSSI || installedMCSSE, err
 	}
 
 	installedSD, err := utils.CreateOrUpdateEmbeddedCRD(c, embeddedyamls.Manifests_deploy_crds_submariner_io_servicediscoveries_yaml)
 	if err != nil {
+		klog.Errorf("error creating the ServiceDiscovery CRD: %v", err)
 		return installedMCSSI || installedMCSSE || installedSD, err
 	}
 

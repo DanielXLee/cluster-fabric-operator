@@ -22,8 +22,6 @@ import (
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
-	operatorv1alpha1 "github.com/DanielXLee/cluster-fabric-operator/api/v1alpha1"
-	"github.com/DanielXLee/cluster-fabric-operator/controllers"
 	submariner "github.com/submariner-io/submariner-operator/apis/submariner/v1alpha1"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -33,6 +31,9 @@ import (
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
+
+	operatorv1alpha1 "github.com/DanielXLee/cluster-fabric-operator/api/v1alpha1"
+	"github.com/DanielXLee/cluster-fabric-operator/controllers"
 	//+kubebuilder:scaffold:imports
 )
 

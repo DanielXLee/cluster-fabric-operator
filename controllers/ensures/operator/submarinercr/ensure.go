@@ -41,13 +41,13 @@ var backOff wait.Backoff = wait.Backoff{
 	Cap:      60 * time.Second,
 }
 
-func Ensure(c client.Client, namespace string, submarinerSpec submariner.SubmarinerSpec) error {
+func Ensure(c client.Client, namespace string, submarinerSpec *submariner.SubmarinerSpec) error {
 	newSubmarinerCR := &submariner.Submariner{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      SubmarinerName,
 			Namespace: namespace,
 		},
-		Spec: submarinerSpec,
+		Spec: *submarinerSpec,
 	}
 	submarinerCR := &submariner.Submariner{}
 	submarinerCRKey := types.NamespacedName{Name: SubmarinerName, Namespace: namespace}
