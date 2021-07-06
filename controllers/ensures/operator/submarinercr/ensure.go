@@ -22,7 +22,9 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	submariner "github.com/submariner-io/submariner-operator/apis/submariner/v1alpha1"
@@ -33,30 +35,43 @@ const (
 )
 
 var backOff wait.Backoff = wait.Backoff{
-	Steps:    10,
-	Duration: 500 * time.Millisecond,
+	Steps:    20,
+	Duration: 1 * time.Second,
 	Factor:   1.5,
-	Cap:      20 * time.Second,
+	Cap:      60 * time.Second,
 }
 
 func Ensure(c client.Client, namespace string, submarinerSpec submariner.SubmarinerSpec) error {
-	submarinerCR := &submariner.Submariner{
+	newSubmarinerCR := &submariner.Submariner{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      SubmarinerName,
 			Namespace: namespace,
 		},
 		Spec: submarinerSpec,
 	}
-
+	submarinerCR := &submariner.Submariner{}
+	submarinerCRKey := types.NamespacedName{Name: SubmarinerName, Namespace: namespace}
 	return wait.ExponentialBackoff(backOff, func() (bool, error) {
-		if err := c.Create(context.TODO(), submarinerCR); !errors.IsAlreadyExists(err) {
-			return true, err
+		if err := c.Get(context.TODO(), submarinerCRKey, submarinerCR); err != nil {
+			if errors.IsNotFound(err) {
+				klog.Info("Creating new submerinerCR")
+				if err := c.Create(context.TODO(), newSubmarinerCR); err != nil {
+					return false, err
+				}
+				return true, nil
+			}
+			return false, err
 		}
 
+		if !submarinerCR.ObjectMeta.DeletionTimestamp.IsZero() {
+			klog.Info("SubmerinerCR is deleted, waiting for the delete complete...")
+			return false, nil
+		}
+
+		klog.Info("Try to delete existing submerinerCR")
 		fg := metav1.DeletePropagationForeground
 		delOpts := &client.DeleteOptions{PropagationPolicy: &fg}
 		err := c.Delete(context.TODO(), submarinerCR, delOpts)
-
 		return false, client.IgnoreNotFound(err)
 	})
 }

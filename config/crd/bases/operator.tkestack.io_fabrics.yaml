@@ -41,73 +41,41 @@ spec:
                   of the Submariner.
                 properties:
                   componentArr:
+                    description: ComponentArr represents components to be installed.
                     items:
                       type: string
                     type: array
                   defaultCustomDomains:
+                    description: DefaultCustomDomains represents list of domains to
+                      use for multicluster service discovery.
                     items:
                       type: string
                     type: array
                   defaultGlobalnetClusterSize:
+                    default: 65336
+                    description: DefaultGlobalnetClusterSize represents default cluster
+                      size for global CIDR allocated to each cluster (amount of global
+                      IPs).
                     type: integer
-                  globalCIDRConfigMap:
-                    description: ConfigMap holds configuration data for pods to consume.
-                    properties:
-                      apiVersion:
-                        description: 'APIVersion defines the versioned schema of this
-                          representation of an object. Servers should convert recognized
-                          schemas to the latest internal value, and may reject unrecognized
-                          values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-                        type: string
-                      binaryData:
-                        additionalProperties:
-                          format: byte
-                          type: string
-                        description: BinaryData contains the binary data. Each key
-                          must consist of alphanumeric characters, '-', '_' or '.'.
-                          BinaryData can contain byte sequences that are not in the
-                          UTF-8 range. The keys stored in BinaryData must not overlap
-                          with the ones in the Data field, this is enforced during
-                          validation process. Using this field will require 1.10+
-                          apiserver and kubelet.
-                        type: object
-                      data:
-                        additionalProperties:
-                          type: string
-                        description: Data contains the configuration data. Each key
-                          must consist of alphanumeric characters, '-', '_' or '.'.
-                          Values with non-UTF-8 byte sequences must use the BinaryData
-                          field. The keys stored in Data must not overlap with the
-                          keys in the BinaryData field, this is enforced during validation
-                          process.
-                        type: object
-                      immutable:
-                        description: Immutable, if set to true, ensures that data
-                          stored in the ConfigMap cannot be updated (only object metadata
-                          can be modified). If not set to true, the field can be modified
-                          at any time. Defaulted to nil. This is a beta field enabled
-                          by ImmutableEphemeralVolumes feature gate.
-                        type: boolean
-                      kind:
-                        description: 'Kind is a string value representing the REST
-                          resource this object represents. Servers may infer this
-                          from the endpoint the client submits requests to. Cannot
-                          be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-                        type: string
-                      metadata:
-                        description: 'Standard object''s metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata'
-                        type: object
-                    type: object
                   globalnetCIDRRange:
+                    default: 242.0.0.0/8
+                    description: GlobalnetCIDRRange represents global CIDR supernet
+                      range for allocating global CIDRs to each cluster.
                     type: string
                   globalnetEnable:
+                    default: false
+                    description: GlobalnetEnable represents enable/disable overlapping
+                      CIDRs in connecting clusters (default disabled).
                     type: boolean
-                  ipsecSubmFile:
-                    type: string
                   serviceDiscoveryEnabled:
+                    default: true
+                    description: ServiceDiscoveryEnabled represents enable/disable
+                      multi-cluster service discovery.
                     type: boolean
                 type: object
               cloudPrepareConfig:
+                description: CloudPrepareConfig represents the preate config for the
+                  cloud vendor.
                 properties:
                   aws:
                     description: AWS represents aws cloud prepare setup
@@ -166,82 +134,60 @@ spec:
                   of the Submariner.
                 properties:
                   cableDriver:
+                    description: CableDriver represents cable driver implementation.
                     type: string
-                  clientToken:
-                    description: Secret holds secret data of a certain type. The total
-                      bytes of the values in the Data field must be less than MaxSecretSize
-                      bytes.
-                    properties:
-                      apiVersion:
-                        description: 'APIVersion defines the versioned schema of this
-                          representation of an object. Servers should convert recognized
-                          schemas to the latest internal value, and may reject unrecognized
-                          values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-                        type: string
-                      data:
-                        additionalProperties:
-                          format: byte
-                          type: string
-                        description: Data contains the secret data. Each key must
-                          consist of alphanumeric characters, '-', '_' or '.'. The
-                          serialized form of the secret data is a base64 encoded string,
-                          representing the arbitrary (possibly non-string) data value
-                          here. Described in https://tools.ietf.org/html/rfc4648#section-4
-                        type: object
-                      immutable:
-                        description: Immutable, if set to true, ensures that data
-                          stored in the Secret cannot be updated (only object metadata
-                          can be modified). If not set to true, the field can be modified
-                          at any time. Defaulted to nil. This is a beta field enabled
-                          by ImmutableEphemeralVolumes feature gate.
-                        type: boolean
-                      kind:
-                        description: 'Kind is a string value representing the REST
-                          resource this object represents. Servers may infer this
-                          from the endpoint the client submits requests to. Cannot
-                          be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-                        type: string
-                      metadata:
-                        description: 'Standard object''s metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata'
-                        type: object
-                      stringData:
-                        additionalProperties:
-                          type: string
-                        description: stringData allows specifying non-binary secret
-                          data in string form. It is provided as a write-only convenience
-                          method. All keys and values are merged into the data field
-                          on write, overwriting any existing values. It is never output
-                          when reading from the API.
-                        type: object
-                      type:
-                        description: Used to facilitate programmatic handling of secret
-                          data.
-                        type: string
-                    type: object
                   clusterCIDR:
+                    description: ClusterCIDR represents cluster CIDR.
                     type: string
                   clusterID:
+                    description: ClusterID used to identify the tunnels.
                     type: string
                   corednsCustomConfigMap:
+                    description: CorednsCustomConfigMap represents name of the custom
+                      CoreDNS configmap to configure forwarding to lighthouse. It
+                      should be in <namespace>/<name> format where <namespace> is
+                      optional and defaults to kube-system
                     type: string
                   customDomains:
+                    description: CustomDomains represents list of domains to use for
+                      multicluster service discovery.
                     items:
                       type: string
                     type: array
                   forceUDPEncaps:
+                    default: false
+                    description: ForceUDPEncaps represents force UDP encapsulation
+                      for IPSec.
                     type: boolean
                   globalnetCIDR:
+                    description: GlobalCIDR represents global CIDR to be allocated
+                      to the cluster.
                     type: string
                   globalnetClusterSize:
+                    default: 0
+                    description: GlobalnetClusterSize represents cluster size for
+                      GlobalCIDR allocated to this cluster (amount of global IPs).
                     type: integer
                   globalnetEnabled:
+                    default: true
+                    description: GlobalnetEnabled represents enable/disable Globalnet
+                      for this cluster.
                     type: boolean
                   healthCheckEnable:
+                    default: true
+                    description: HealthCheckEnable represents enable/disable gateway
+                      health check.
                     type: boolean
                   healthCheckInterval:
+                    default: 1
+                    description: HealthCheckInterval represents interval in seconds
+                      between health check packets.
                     format: int64
                     type: integer
                   healthCheckMaxPacketLossCount:
+                    default: 5
+                    description: HealthCheckMaxPacketLossCount represents maximum
+                      number of packets lost before the connection is marked as down.
                     format: int64
                     type: integer
                   ikePort:
@@ -249,30 +195,54 @@ spec:
                     description: IkePort represents IPsec IKE port (default 500).
                     type: integer
                   imageOverrideArr:
+                    description: ImageOverrideArr represents override component image.
                     items:
                       type: string
                     type: array
                   imageVersion:
+                    description: ImageVersion represents image version.
                     type: string
                   ipsecDebug:
+                    default: false
+                    description: IpsecDebug represents enable/disable IPsec debugging
+                      (verbose logging).
                     type: boolean
                   labelGateway:
+                    default: true
+                    description: LabelGateway represents enable/disable label gateways.
                     type: boolean
                   loadBalancerEnabled:
+                    default: false
+                    description: LoadBalancerEnabled represents enable/disable automatic
+                      LoadBalancer in front of the gateways.
                     type: boolean
                   natTraversal:
+                    default: true
+                    description: NatTraversal represents enable NAT traversal for
+                      IPsec
                     type: boolean
                   nattPort:
                     default: 4500
+                    description: NattPort represents IPsec NAT-T port (default 4500).
                     type: integer
                   preferredServer:
+                    default: false
+                    description: PreferredServer represents enable/disable this cluster
+                      as a preferred server for data-plane connections.
                     type: boolean
                   repository:
+                    description: Repository represents image repository.
                     type: string
                   serviceCIDR:
+                    description: ServiceCIDR represents service CIDR.
                     type: string
                   submarinerDebug:
+                    default: false
+                    description: SubmarinerDebug represents enable/disable submariner
+                      pod debugging (verbose logging in the deployed pods).
                     type: boolean
+                required:
+                - clusterID
                 type: object
             type: object
           status:

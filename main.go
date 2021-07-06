@@ -83,6 +83,7 @@ func main() {
 
 	if err = (&controllers.FabricReconciler{
 		Client:       mgr.GetClient(),
+		Reader:       mgr.GetAPIReader(),
 		Config:       mgr.GetConfig(),
 		Scheme:       mgr.GetScheme(),
 		DeployBroker: deployBroker,

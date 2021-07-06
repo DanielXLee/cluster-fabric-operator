@@ -19,10 +19,11 @@ package globalnet
 import (
 	"encoding/binary"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"math/bits"
 	"net"
+
+	"k8s.io/apimachinery/pkg/api/errors"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
@@ -261,8 +262,7 @@ func ValidateGlobalnetConfiguration(globalnetInfo *GlobalnetInfo, netconfig Conf
 	}
 
 	if globalnetCIDR != "" && globalnetClusterSize != 0 {
-		err := errors.New("both globalnet-cluster-size and globalnet-cidr can't be specified. Specify either one")
-		return "", fmt.Errorf("%s", err)
+		return "", fmt.Errorf("both globalnet-cluster-size and globalnet-cidr can't be specified. Specify either one")
 	}
 
 	if globalnetCIDR != "" {
@@ -362,4 +362,45 @@ func AssignGlobalnetIPs(globalnetInfo *GlobalnetInfo, netconfig Config) (string,
 		}
 	}
 	return globalnetCIDR, nil
+}
+
+func IsValidCIDR(cidr string) error {
+	ip, _, err := net.ParseCIDR(cidr)
+
+	if err != nil {
+		return err
+	}
+	if ip.IsUnspecified() {
+		return fmt.Errorf("%s can't be unspecified", cidr)
+	}
+	if ip.IsLoopback() {
+		return fmt.Errorf("%s can't be in loopback range", cidr)
+	}
+	if ip.IsLinkLocalUnicast() {
+		return fmt.Errorf("%s can't be in link-local range", cidr)
+	}
+	if ip.IsLinkLocalMulticast() {
+		return fmt.Errorf("%s can't be in link-local multicast range", cidr)
+	}
+
+	return nil
+}
+
+func ValidateExistingGlobalNetworks(reader client.Reader, namespace string) error {
+	globalnetInfo, _, err := GetGlobalNetworks(reader, namespace)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		klog.Errorf("error getting existing globalnet configmap: %v", err)
+		return err
+	}
+
+	if globalnetInfo != nil {
+		err = IsValidCIDR(globalnetInfo.GlobalnetCidrRange)
+		klog.Errorf("invalid GlobalnetCidrRange: %v", err)
+		return err
+	}
+
+	return nil
 }

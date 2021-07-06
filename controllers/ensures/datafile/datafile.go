@@ -20,7 +20,6 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 
 	"github.com/DanielXLee/cluster-fabric-operator/controllers/stringset"
@@ -134,8 +133,8 @@ func NewFromConfigMap(c client.Client, brokerNamespace string) (*BrokerInfo, err
 	return NewFromString(cm.Data["brokerInfo"])
 }
 
-func NewFromCluster(c client.Client, restConfig *rest.Config, brokerNamespace, ipsecSubmFile string) (*BrokerInfo, error) {
-	subCtlData, err := newFromCluster(c, brokerNamespace, ipsecSubmFile)
+func NewFromCluster(c client.Client, restConfig *rest.Config, brokerNamespace string) (*BrokerInfo, error) {
+	subCtlData, err := newFromCluster(c, brokerNamespace)
 	if err != nil {
 		return nil, err
 	}
@@ -143,7 +142,7 @@ func NewFromCluster(c client.Client, restConfig *rest.Config, brokerNamespace, i
 	return subCtlData, err
 }
 
-func newFromCluster(c client.Client, brokerNamespace, ipsecSubmFile string) (*BrokerInfo, error) {
+func newFromCluster(c client.Client, brokerNamespace string) (*BrokerInfo, error) {
 	subctlData := &BrokerInfo{}
 	var err error
 
@@ -151,19 +150,20 @@ func newFromCluster(c client.Client, brokerNamespace, ipsecSubmFile string) (*Br
 	if err != nil {
 		return nil, err
 	}
-
-	if ipsecSubmFile != "" {
-		datafile, err := NewFromFile(ipsecSubmFile)
-		if err != nil {
-			return nil, fmt.Errorf("error happened trying to import IPsec PSK from subm file: %s: %s", ipsecSubmFile,
-				err.Error())
-		}
-		subctlData.IPSecPSK = datafile.IPSecPSK
-		return subctlData, err
-	} else {
-		subctlData.IPSecPSK, err = newIPSECPSKSecret()
-		return subctlData, err
-	}
+	subctlData.IPSecPSK, err = newIPSECPSKSecret()
+	return subctlData, err
+	// if ipsecSubmFile != "" {
+	// 	datafile, err := NewFromFile(ipsecSubmFile)
+	// 	if err != nil {
+	// 		return nil, fmt.Errorf("error happened trying to import IPsec PSK from subm file: %s: %s", ipsecSubmFile,
+	// 			err.Error())
+	// 	}
+	// 	subctlData.IPSecPSK = datafile.IPSecPSK
+	// 	return subctlData, err
+	// } else {
+	// 	subctlData.IPSecPSK, err = newIPSECPSKSecret()
+	// 	return subctlData, err
+	// }
 }
 
 func (data *BrokerInfo) GetBrokerAdministratorCluster() (cluster.Cluster, error) {
