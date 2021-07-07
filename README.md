@@ -31,6 +31,7 @@ Here the features which are supported by this operator:-
 
 - Deploy submariner broker
 - Join managed cluster to broker
+- Check k8s server version
 - Support cloud prepare (AWS, GCE)
 - Support components enable/disable
 

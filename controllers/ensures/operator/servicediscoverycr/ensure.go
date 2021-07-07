@@ -29,24 +29,7 @@ import (
 	"github.com/DanielXLee/cluster-fabric-operator/controllers/ensures/names"
 )
 
-// func init() {
-// 	err := submariner.AddToScheme(scheme.Scheme)
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// }
-
 func Ensure(c client.Client, namespace string, serviceDiscoverySpec *submariner.ServiceDiscoverySpec) error {
-	// sd := &submariner.ServiceDiscovery{
-	// 	ObjectMeta: metav1.ObjectMeta{
-	// 		Namespace: namespace,
-	// 		Name:      names.ServiceDiscoveryCrName,
-	// 	},
-	// 	Spec: *serviceDiscoverySpec,
-	// }
-
-	// _, err := utils.CreateOrUpdate(c, sd)
-
 	sd := &submariner.ServiceDiscovery{ObjectMeta: metav1.ObjectMeta{Name: names.ServiceDiscoveryCrName, Namespace: namespace}}
 	or, err := ctrl.CreateOrUpdate(context.TODO(), c, sd, func() error {
 		sd.Spec = *serviceDiscoverySpec

@@ -60,6 +60,10 @@ const (
 type Phase string
 
 type BrokerConfig struct {
+	// ServiceDiscoveryEnabled represents enable/disable multi-cluster service discovery.
+	// +optional
+	// +kubebuilder:default=true
+	ServiceDiscoveryEnabled bool `json:"serviceDiscoveryEnabled,omitempty"`
 	// GlobalnetEnable represents enable/disable overlapping CIDRs in connecting clusters (default disabled).
 	// +optional
 	// +kubebuilder:default=false
@@ -72,13 +76,6 @@ type BrokerConfig struct {
 	// +optional
 	// +kubebuilder:default=65336
 	DefaultGlobalnetClusterSize uint `json:"defaultGlobalnetClusterSize,omitempty"`
-	// ServiceDiscoveryEnabled represents enable/disable multi-cluster service discovery.
-	// +optional
-	// +kubebuilder:default=true
-	ServiceDiscoveryEnabled bool `json:"serviceDiscoveryEnabled,omitempty"`
-	// ComponentArr represents components to be installed.
-	// +optional
-	ComponentArr []string `json:"componentArr,omitempty"`
 	// DefaultCustomDomains represents list of domains to use for multicluster service discovery.
 	// +optional
 	DefaultCustomDomains []string `json:"defaultCustomDomains,omitempty"`

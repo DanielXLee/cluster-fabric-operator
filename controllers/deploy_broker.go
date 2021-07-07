@@ -17,8 +17,6 @@ limitations under the License.
 package controllers
 
 import (
-	"fmt"
-
 	submarinerv1a1 "github.com/submariner-io/submariner-operator/apis/submariner/v1alpha1"
 	"k8s.io/klog/v2"
 
@@ -26,30 +24,22 @@ import (
 
 	"github.com/DanielXLee/cluster-fabric-operator/controllers/discovery/globalnet"
 	"github.com/DanielXLee/cluster-fabric-operator/controllers/ensures/broker"
-	"github.com/DanielXLee/cluster-fabric-operator/controllers/ensures/datafile"
 	"github.com/DanielXLee/cluster-fabric-operator/controllers/ensures/operator/brokercr"
-	"github.com/DanielXLee/cluster-fabric-operator/controllers/stringset"
 
 	operatorv1alpha1 "github.com/DanielXLee/cluster-fabric-operator/api/v1alpha1"
-	"github.com/DanielXLee/cluster-fabric-operator/controllers/components"
 	"github.com/DanielXLee/cluster-fabric-operator/controllers/ensures/operator/submarinerop"
 )
 
+// var defaultComponents = []string{components.ServiceDiscovery, components.Connectivity}
+// var validComponents = []string{components.ServiceDiscovery, components.Connectivity, components.Globalnet, components.Broker}
+
 func (r *FabricReconciler) DeploySubmerinerBroker(instance *operatorv1alpha1.Fabric) error {
 	brokerConfig := &instance.Spec.BrokerConfig
-	componentSet := stringset.New(brokerConfig.ComponentArr...)
 
-	if err := isValidComponents(componentSet); err != nil {
-		klog.Errorf("Invalid components parameter: %v", err)
-	}
-
-	if brokerConfig.ServiceDiscoveryEnabled {
-		componentSet.Add(components.ServiceDiscovery)
-	}
-
-	if brokerConfig.GlobalnetEnable {
-		componentSet.Add(components.Globalnet)
-	}
+	// if err := isValidComponents(instance); err != nil {
+	// 	klog.Errorf("Invalid components parameter: %v", err)
+	// 	return err
+	// }
 
 	if valid, err := isValidGlobalnetConfig(instance); !valid {
 		klog.Errorf("Invalid GlobalCIDR configuration: %v", err)
@@ -57,7 +47,7 @@ func (r *FabricReconciler) DeploySubmerinerBroker(instance *operatorv1alpha1.Fab
 	}
 
 	klog.Info("Setting up broker RBAC")
-	if err := broker.Ensure(r.Client, r.Config, brokerConfig.ComponentArr, false); err != nil {
+	if err := broker.Ensure(r.Client, r.Config, brokerConfig.ServiceDiscoveryEnabled, brokerConfig.GlobalnetEnable, false); err != nil {
 		klog.Errorf("Error setting up broker RBAC: %v", err)
 		return err
 	}
@@ -72,54 +62,43 @@ func (r *FabricReconciler) DeploySubmerinerBroker(instance *operatorv1alpha1.Fab
 		return err
 	}
 
-	brokerInfo, err := datafile.NewFromCluster(r.Client, r.Config, consts.SubmarinerBrokerNamespace)
-	if err != nil {
-		klog.Errorf("Error retrieving preparing the subm data file: %v", err)
-		return err
-	}
-
-	brokerInfo.ServiceDiscovery = brokerConfig.ServiceDiscoveryEnabled
-	brokerInfo.SetComponents(componentSet)
-
-	if len(brokerConfig.DefaultCustomDomains) > 0 {
-		brokerInfo.CustomDomains = &brokerConfig.DefaultCustomDomains
-	}
-
 	if brokerConfig.GlobalnetEnable {
-		if err = globalnet.ValidateExistingGlobalNetworks(r.Reader, consts.SubmarinerBrokerNamespace); err != nil {
+		if err := globalnet.ValidateExistingGlobalNetworks(r.Reader, consts.SubmarinerBrokerNamespace); err != nil {
 			klog.Errorf("Error validating existing globalCIDR configmap: %v", err)
 			return err
 		}
 	}
 
-	if err = broker.CreateGlobalnetConfigMap(r.Client, brokerConfig.GlobalnetEnable, brokerConfig.GlobalnetCIDRRange,
+	if err := broker.CreateGlobalnetConfigMap(r.Client, brokerConfig.GlobalnetEnable, brokerConfig.GlobalnetCIDRRange,
 		brokerConfig.DefaultGlobalnetClusterSize, consts.SubmarinerBrokerNamespace); err != nil {
 		klog.Errorf("Error creating globalCIDR configmap on Broker: %v", err)
 		return err
 	}
 
-	if err = brokerInfo.WriteConfigMap(r.Client, consts.SubmarinerBrokerNamespace); err != nil {
+	if err := broker.CreateBrokerInfoConfigMap(r.Client, r.Config, instance); err != nil {
 		klog.Errorf("Error writing the broker information: %v", err)
 		return err
 	}
 	return nil
 }
 
-func isValidComponents(componentSet stringset.Interface) error {
-	validComponentSet := stringset.New(validComponents...)
+// func isValidComponents(instance *operatorv1alpha1.Fabric) error {
+// 	componentSet := stringset.New(instance.Spec.BrokerConfig.ComponentArr...)
+// 	validComponentSet := stringset.New(validComponents...)
 
-	if componentSet.Size() < 1 {
-		return fmt.Errorf("at least one component must be provided for deployment")
-	}
+// 	if componentSet.Size() < 1 {
+// 		klog.Info("Use default components")
+// 		instance.Spec.BrokerConfig.ComponentArr = defaultComponents
+// 		return nil
+// 	}
 
-	for _, component := range componentSet.Elements() {
-		if !validComponentSet.Contains(component) {
-			return fmt.Errorf("unknown component: %s", component)
-		}
-	}
-
-	return nil
-}
+// 	for _, component := range componentSet.Elements() {
+// 		if !validComponentSet.Contains(component) {
+// 			return fmt.Errorf("unknown component: %s", component)
+// 		}
+// 	}
+// 	return nil
+// }
 
 func isValidGlobalnetConfig(instance *operatorv1alpha1.Fabric) (bool, error) {
 	brokerConfig := &instance.Spec.BrokerConfig
@@ -140,7 +119,6 @@ func populateBrokerSpec(instance *operatorv1alpha1.Fabric) submarinerv1a1.Broker
 		GlobalnetEnabled:            brokerConfig.GlobalnetEnable,
 		GlobalnetCIDRRange:          brokerConfig.GlobalnetCIDRRange,
 		DefaultGlobalnetClusterSize: brokerConfig.DefaultGlobalnetClusterSize,
-		Components:                  brokerConfig.ComponentArr,
 		DefaultCustomDomains:        brokerConfig.DefaultCustomDomains,
 	}
 	return brokerSpec

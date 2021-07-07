@@ -27,16 +27,15 @@ import (
 	submariner "github.com/submariner-io/submariner-operator/apis/submariner/v1alpha1"
 
 	operatorv1alpha1 "github.com/DanielXLee/cluster-fabric-operator/api/v1alpha1"
+	cmdVersion "github.com/DanielXLee/cluster-fabric-operator/controllers/checker"
 	"github.com/DanielXLee/cluster-fabric-operator/controllers/discovery/globalnet"
 	"github.com/DanielXLee/cluster-fabric-operator/controllers/discovery/network"
 	consts "github.com/DanielXLee/cluster-fabric-operator/controllers/ensures"
 	"github.com/DanielXLee/cluster-fabric-operator/controllers/ensures/broker"
-	"github.com/DanielXLee/cluster-fabric-operator/controllers/ensures/datafile"
 	"github.com/DanielXLee/cluster-fabric-operator/controllers/ensures/names"
 	"github.com/DanielXLee/cluster-fabric-operator/controllers/ensures/operator/servicediscoverycr"
 	"github.com/DanielXLee/cluster-fabric-operator/controllers/ensures/operator/submarinercr"
 	"github.com/DanielXLee/cluster-fabric-operator/controllers/ensures/operator/submarinerop"
-	cmdVersion "github.com/DanielXLee/cluster-fabric-operator/controllers/version"
 	"github.com/DanielXLee/cluster-fabric-operator/controllers/versions"
 
 	v1 "k8s.io/api/core/v1"
@@ -60,7 +59,7 @@ var nodeLabelBackoff wait.Backoff = wait.Backoff{
 	Jitter:   1,
 }
 
-func (r *FabricReconciler) JoinSubmarinerCluster(instance *operatorv1alpha1.Fabric, brokerInfo *datafile.BrokerInfo) error {
+func (r *FabricReconciler) JoinSubmarinerCluster(instance *operatorv1alpha1.Fabric, brokerInfo *broker.BrokerInfo) error {
 	joinConfig := instance.Spec.JoinConfig
 
 	if err := isValidCustomCoreDNSConfig(instance); err != nil {
@@ -93,6 +92,7 @@ func (r *FabricReconciler) JoinSubmarinerCluster(instance *operatorv1alpha1.Fabr
 		for i := range failedRequirements {
 			klog.Infof("* %s", (failedRequirements)[i])
 		}
+		return fmt.Errorf("the target cluster fails to meet Submariner's requirements")
 	}
 	if err != nil {
 		klog.Errorf("Unable to check all requirements: %v", err)
@@ -124,21 +124,21 @@ func (r *FabricReconciler) JoinSubmarinerCluster(instance *operatorv1alpha1.Fabr
 
 	brokerCluster, err := brokerInfo.GetBrokerAdministratorCluster()
 	if err != nil {
-		klog.Errorf("unable to get broker client: %v", err)
+		klog.Errorf("unable to get broker cluster client: %v", err)
 		return err
 	}
 	brokerNamespace := string(brokerInfo.ClientToken.Data["namespace"])
 
 	netconfig := globalnet.Config{
 		ClusterID:               joinConfig.ClusterID,
-		GlobalnetCIDR:           joinConfig.GlobalnetCIDR,
 		ServiceCIDR:             serviceCIDR,
 		ServiceCIDRAutoDetected: serviceCIDRautoDetected,
 		ClusterCIDR:             clusterCIDR,
 		ClusterCIDRAutoDetected: clusterCIDRautoDetected,
-		GlobalnetClusterSize:    joinConfig.GlobalnetClusterSize,
+		GlobalnetCIDR:           brokerInfo.GlobalnetCIDRRange,
+		GlobalnetClusterSize:    brokerInfo.DefaultGlobalnetClusterSize,
 	}
-	if joinConfig.GlobalnetEnabled {
+	if brokerInfo.IsGlobalnetEnabled() {
 		if err = r.AllocateAndUpdateGlobalCIDRConfigMap(brokerCluster.GetClient(), brokerCluster.GetAPIReader(), instance, brokerNamespace, &netconfig); err != nil {
 			klog.Errorf("Error Discovering multi cluster details: %v", err)
 			return err
@@ -189,18 +189,21 @@ func (r *FabricReconciler) AllocateAndUpdateGlobalCIDRConfigMap(c client.Client,
 	retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		globalnetInfo, globalnetConfigMap, err := globalnet.GetGlobalNetworks(reader, brokerNamespace)
 		if err != nil {
-			return fmt.Errorf("error reading Global network details on Broker: %s", err)
+			klog.Errorf("error reading Global network details on Broker: %v", err)
+			return err
 		}
 
 		netconfig.GlobalnetCIDR, err = globalnet.ValidateGlobalnetConfiguration(globalnetInfo, *netconfig)
 		if err != nil {
-			return fmt.Errorf("error validating Globalnet configuration: %s", err)
+			klog.Errorf("error validating Globalnet configuration: %v", err)
+			return err
 		}
 
 		if globalnetInfo.GlobalnetEnabled {
 			netconfig.GlobalnetCIDR, err = globalnet.AssignGlobalnetIPs(globalnetInfo, *netconfig)
 			if err != nil {
-				return fmt.Errorf("error assigning Globalnet IPs: %s", err)
+				klog.Errorf("error assigning Globalnet IPs: %v", err)
+				return err
 			}
 
 			if globalnetInfo.GlobalCidrInfo[joinConfig.ClusterID] == nil ||
@@ -209,8 +212,7 @@ func (r *FabricReconciler) AllocateAndUpdateGlobalCIDRConfigMap(c client.Client,
 				newClusterInfo.ClusterID = joinConfig.ClusterID
 				newClusterInfo.GlobalCidr = []string{netconfig.GlobalnetCIDR}
 
-				err = broker.UpdateGlobalnetConfigMap(c, brokerNamespace, globalnetConfigMap, newClusterInfo)
-				return err
+				return broker.UpdateGlobalnetConfigMap(c, brokerNamespace, globalnetConfigMap, newClusterInfo)
 			}
 		}
 		return err
@@ -269,7 +271,7 @@ func isValidClusterID(clusterID string) (bool, error) {
 	return true, nil
 }
 
-func populateSubmarinerSpec(instance *operatorv1alpha1.Fabric, brokerInfo *datafile.BrokerInfo, netconfig globalnet.Config) (*submariner.SubmarinerSpec, error) {
+func populateSubmarinerSpec(instance *operatorv1alpha1.Fabric, brokerInfo *broker.BrokerInfo, netconfig globalnet.Config) (*submariner.SubmarinerSpec, error) {
 	joinConfig := instance.Spec.JoinConfig
 	brokerURL := brokerInfo.BrokerURL
 	if idx := strings.Index(brokerURL, "://"); idx >= 0 {
@@ -319,6 +321,7 @@ func populateSubmarinerSpec(instance *operatorv1alpha1.Fabric, brokerInfo *dataf
 		CableDriver:              joinConfig.CableDriver,
 		ServiceDiscoveryEnabled:  brokerInfo.IsServiceDiscoveryEnabled(),
 		ImageOverrides:           imageOverrides,
+		GlobalCIDR:               brokerInfo.GlobalnetCIDRRange,
 	}
 	if netconfig.GlobalnetCIDR != "" {
 		submarinerSpec.GlobalCIDR = netconfig.GlobalnetCIDR
@@ -365,7 +368,7 @@ func removeSchemaPrefix(brokerURL string) string {
 	return brokerURL
 }
 
-func populateServiceDiscoverySpec(instance *operatorv1alpha1.Fabric, brokerInfo *datafile.BrokerInfo) (*submariner.ServiceDiscoverySpec, error) {
+func populateServiceDiscoverySpec(instance *operatorv1alpha1.Fabric, brokerInfo *broker.BrokerInfo) (*submariner.ServiceDiscoverySpec, error) {
 	brokerURL := removeSchemaPrefix(brokerInfo.BrokerURL)
 	joinConfig := instance.Spec.JoinConfig
 	var customDomains []string
@@ -387,6 +390,7 @@ func populateServiceDiscoverySpec(instance *operatorv1alpha1.Fabric, brokerInfo 
 		ClusterID:                joinConfig.ClusterID,
 		Namespace:                consts.SubmarinerOperatorNamespace,
 		ImageOverrides:           imageOverrides,
+		GlobalnetEnabled:         brokerInfo.IsGlobalnetEnabled(),
 	}
 
 	if joinConfig.CorednsCustomConfigMap != "" {
@@ -453,9 +457,6 @@ func getCustomCoreDNSParams(instance *operatorv1alpha1.Fabric) (namespace, name 
 }
 
 func (r *FabricReconciler) HandleNodeLabels() error {
-	// _, clientset, err := restconfig.Clients(config)
-	// utils.ExitOnError("Unable to set the Kubernetes cluster connection up", err)
-	// List Submariner-labeled nodes
 	const submarinerGatewayLabel = "submariner.io/gateway"
 	const trueLabel = "true"
 	selector, err := labels.Parse("submariner.io/gateway=true")
@@ -469,10 +470,6 @@ func (r *FabricReconciler) HandleNodeLabels() error {
 	if err := r.Client.List(context.TODO(), nodes, opts); err != nil {
 		return err
 	}
-	// labeledNodes, err := clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{LabelSelector: selector.String()})
-	// if err != nil {
-	// 	return err
-	// }
 	if len(nodes.Items) > 0 {
 		klog.Infof("* There are %d labeled nodes in the cluster:", len(nodes.Items))
 		for _, node := range nodes.Items {

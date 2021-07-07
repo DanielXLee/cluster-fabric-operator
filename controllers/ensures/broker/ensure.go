@@ -31,39 +31,29 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/DanielXLee/cluster-fabric-operator/controllers/components"
 	consts "github.com/DanielXLee/cluster-fabric-operator/controllers/ensures"
 	"github.com/DanielXLee/cluster-fabric-operator/controllers/ensures/gateway"
 	"github.com/DanielXLee/cluster-fabric-operator/controllers/ensures/lighthouse"
 	crdutils "github.com/DanielXLee/cluster-fabric-operator/controllers/ensures/utils"
 )
 
-func Ensure(c client.Client, config *rest.Config, componentArr []string, crds bool) error {
+func Ensure(c client.Client, config *rest.Config, serviceDiscoveryEnabled, globalnetEnabled, crds bool) error {
 	if crds {
 		crdCreator, err := crdutils.NewFromRestConfig(config)
 		if err != nil {
 			klog.Errorf("error accessing the target cluster: %v", err)
 			return err
 		}
+		if err = gateway.Ensure(c); err != nil {
+			klog.Errorf("error setting up the connectivity requirements: %v", err)
+			return err
+		}
 
-		for i := range componentArr {
-			switch componentArr[i] {
-			case components.Connectivity:
-				if err = gateway.Ensure(c); err != nil {
-					klog.Errorf("error setting up the connectivity requirements: %v", err)
-					return err
-				}
-			case components.ServiceDiscovery:
-				if err = lighthouse.Ensure(crdCreator, c, lighthouse.BrokerCluster); err != nil {
-					klog.Errorf("error setting up the service discovery requirements: %v", err)
-					return err
-				}
-			case components.Globalnet:
-				// Globalnet needs the Lighthouse CRDs too
-				if err = lighthouse.Ensure(crdCreator, c, lighthouse.BrokerCluster); err != nil {
-					klog.Errorf("error setting up the globalnet requirements: %v", err)
-					return err
-				}
+		if serviceDiscoveryEnabled || globalnetEnabled {
+			// ServiceDiscovery and Globalnet both need the Lighthouse CRDs
+			if err = lighthouse.Ensure(crdCreator, c, lighthouse.BrokerCluster); err != nil {
+				klog.Errorf("error setting up the globalnet requirements: %v", err)
+				return err
 			}
 		}
 	}

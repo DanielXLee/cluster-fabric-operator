@@ -27,12 +27,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	consts "github.com/DanielXLee/cluster-fabric-operator/controllers/ensures"
-
-	"github.com/DanielXLee/cluster-fabric-operator/controllers/ensures/datafile"
-
 	operatorv1alpha1 "github.com/DanielXLee/cluster-fabric-operator/api/v1alpha1"
-	"github.com/DanielXLee/cluster-fabric-operator/controllers/components"
+	"github.com/DanielXLee/cluster-fabric-operator/controllers/ensures/broker"
 )
 
 // FabricReconciler reconciles a Fabric object
@@ -44,9 +40,6 @@ type FabricReconciler struct {
 	DeployBroker bool
 	JoinBroker   bool
 }
-
-// var defaultComponents = []string{components.ServiceDiscovery, components.Connectivity}
-var validComponents = []string{components.ServiceDiscovery, components.Connectivity}
 
 //+kubebuilder:rbac:groups=operator.tkestack.io,resources=fabrics,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=operator.tkestack.io,resources=fabrics/status,verbs=get;update;patch
@@ -99,7 +92,7 @@ func (r *FabricReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ c
 	// Join managed cluster to submeriner borker
 	if r.JoinBroker {
 		klog.Info("Join managed cluster to submeriner broker")
-		brokerInfo, err := datafile.NewFromConfigMap(r.Client, consts.SubmarinerBrokerNamespace)
+		brokerInfo, err := broker.NewFromConfigMap(r.Client)
 		if err != nil {
 			return ctrl.Result{}, err
 		}

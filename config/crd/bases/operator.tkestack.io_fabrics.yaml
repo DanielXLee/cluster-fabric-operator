@@ -53,11 +53,6 @@ spec:
                 description: BrokerConfig represents the broker cluster configuration
                   of the Submariner.
                 properties:
-                  componentArr:
-                    description: ComponentArr represents components to be installed.
-                    items:
-                      type: string
-                    type: array
                   defaultCustomDomains:
                     description: DefaultCustomDomains represents list of domains to
                       use for multicluster service discovery.

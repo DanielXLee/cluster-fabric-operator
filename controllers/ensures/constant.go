@@ -22,4 +22,7 @@ const (
 
 	SubmarinerBrokerName      = "submariner-broker"
 	SubmarinerBrokerNamespace = "submariner-k8s-broker"
+
+	// SubmarinerBrokerInfo represents the broker info configmap name
+	SubmarinerBrokerInfo = "submariner-broker-info"
 )
