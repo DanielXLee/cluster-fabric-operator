@@ -1,5 +1,5 @@
 /*
-© 2019 Red Hat, Inc. and others.
+Copyright 2021.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,10 +26,8 @@ import (
 )
 
 func Ensure(c client.Client, config *rest.Config, operatorNamespace string) (bool, error) {
-	if created, err := serviceaccount.Ensure(c, operatorNamespace); err != nil {
-		return created, err
-	} else if created {
-		klog.Info("Created lighthouse service account and role")
+	if err := serviceaccount.Ensure(c, operatorNamespace); err != nil {
+		return false, err
 	}
 
 	if created, err := scc.Ensure(config, operatorNamespace); err != nil {

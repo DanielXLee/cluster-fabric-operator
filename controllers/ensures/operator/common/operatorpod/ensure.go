@@ -1,5 +1,5 @@
 /*
-© 2019 Red Hat, Inc. and others.
+Copyright 2021.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,23 +17,39 @@ limitations under the License.
 package operatorpod
 
 import (
+	"context"
 	"strings"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog/v2"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/DanielXLee/cluster-fabric-operator/controllers/ensures/operator/common/deployments"
-	"github.com/DanielXLee/cluster-fabric-operator/controllers/ensures/utils"
 )
 
 const deploymentCheckInterval = 5 * time.Second
 const deploymentWaitTime = 10 * time.Minute
 
 // Ensure the operator is deployed, and running
-func Ensure(c client.Client, namespace, operatorName, image string, debug bool) (bool, error) {
+func Ensure(c client.Client, namespace, operatorName, image string, debug bool) error {
+	deployment := &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: operatorName, Namespace: namespace}}
+	or, err := ctrl.CreateOrUpdate(context.TODO(), c, deployment, func() error {
+		return NewDeployment(deployment, namespace, operatorName, image, debug)
+	})
+	if err != nil {
+		klog.Errorf("Failed to %s Deployment %s: %v", or, deployment.GetName(), err)
+		return err
+	}
+	klog.Infof("Deployment %s %s", deployment.GetName(), or)
+
+	return deployments.WaitForReady(c, namespace, deployment.Name, deploymentCheckInterval, deploymentWaitTime)
+}
+
+func NewDeployment(deployment *appsv1.Deployment, namespace, operatorName, image string, debug bool) error {
 	replicas := int32(1)
 	imagePullPolicy := v1.PullAlways
 	// If we are running with a local development image, don't try to pull from registry
@@ -47,43 +63,36 @@ func Ensure(c client.Client, namespace, operatorName, image string, debug bool) 
 	} else {
 		command = append(command, "-v=1")
 	}
-
-	deployment := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Name:      operatorName,
-		},
-		Spec: appsv1.DeploymentSpec{
-			Replicas: &replicas,
-			Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"name": operatorName}},
-			Template: v1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{"name": operatorName},
-				},
-				Spec: v1.PodSpec{
-					ServiceAccountName: operatorName,
-					Containers: []v1.Container{
-						{
-							Name:            operatorName,
-							Image:           image,
-							Command:         command,
-							ImagePullPolicy: imagePullPolicy,
-							Env: []v1.EnvVar{
-								{
-									Name: "WATCH_NAMESPACE", ValueFrom: &v1.EnvVarSource{
-										FieldRef: &v1.ObjectFieldSelector{
-											FieldPath: "metadata.namespace",
-										},
+	deployment.Spec = appsv1.DeploymentSpec{
+		Replicas: &replicas,
+		Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"name": operatorName}},
+		Template: v1.PodTemplateSpec{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: map[string]string{"name": operatorName},
+			},
+			Spec: v1.PodSpec{
+				ServiceAccountName: operatorName,
+				Containers: []v1.Container{
+					{
+						Name:            operatorName,
+						Image:           image,
+						Command:         command,
+						ImagePullPolicy: imagePullPolicy,
+						Env: []v1.EnvVar{
+							{
+								Name: "WATCH_NAMESPACE", ValueFrom: &v1.EnvVarSource{
+									FieldRef: &v1.ObjectFieldSelector{
+										FieldPath: "metadata.namespace",
 									},
-								}, {
-									Name: "POD_NAME", ValueFrom: &v1.EnvVarSource{
-										FieldRef: &v1.ObjectFieldSelector{
-											FieldPath: "metadata.name",
-										},
-									},
-								}, {
-									Name: "OPERATOR_NAME", Value: operatorName,
 								},
+							}, {
+								Name: "POD_NAME", ValueFrom: &v1.EnvVarSource{
+									FieldRef: &v1.ObjectFieldSelector{
+										FieldPath: "metadata.name",
+									},
+								},
+							}, {
+								Name: "OPERATOR_NAME", Value: operatorName,
 							},
 						},
 					},
@@ -92,12 +101,5 @@ func Ensure(c client.Client, namespace, operatorName, image string, debug bool) 
 		},
 	}
 
-	created, err := utils.CreateOrUpdateDeployment(c, deployment)
-	if err != nil {
-		return false, err
-	}
-
-	err = deployments.WaitForReady(c, namespace, deployment.Name, deploymentCheckInterval, deploymentWaitTime)
-
-	return created, err
+	return nil
 }

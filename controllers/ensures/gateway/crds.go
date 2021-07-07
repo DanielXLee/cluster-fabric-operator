@@ -1,5 +1,5 @@
 /*
-© 2019 Red Hat, Inc. and others.
+Copyright 2021.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,9 +17,7 @@ limitations under the License.
 package gateway
 
 import (
-	"fmt"
-
-	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/DanielXLee/cluster-fabric-operator/controllers/ensures/operator/common/embeddedyamls"
@@ -29,17 +27,17 @@ import (
 // Ensure ensures that the required resources are deployed on the target system
 // The resources handled here are the gateway CRDs: Cluster and Endpoint
 func Ensure(c client.Client) error {
-	_, err := utils.CreateOrUpdateEmbeddedCRD(c, embeddedyamls.Manifests_deploy_submariner_crds_submariner_io_clusters_yaml)
-	if err != nil && !errors.IsAlreadyExists(err) {
-		return fmt.Errorf("error provisioning the Cluster CRD: %s", err)
+	if err := utils.CreateOrUpdateEmbeddedCRD(c, embeddedyamls.Manifests_deploy_submariner_crds_submariner_io_clusters_yaml); err != nil {
+		klog.Errorf("error provisioning the Cluster CRD: %v", err)
+		return err
 	}
-	_, err = utils.CreateOrUpdateEmbeddedCRD(c, embeddedyamls.Manifests_deploy_submariner_crds_submariner_io_endpoints_yaml)
-	if err != nil && !errors.IsAlreadyExists(err) {
-		return fmt.Errorf("error provisioning the Endpoint CRD: %s", err)
+	if err := utils.CreateOrUpdateEmbeddedCRD(c, embeddedyamls.Manifests_deploy_submariner_crds_submariner_io_endpoints_yaml); err != nil {
+		klog.Errorf("error provisioning the Endpoint CRD: %v", err)
+		return err
 	}
-	_, err = utils.CreateOrUpdateEmbeddedCRD(c, embeddedyamls.Manifests_deploy_submariner_crds_submariner_io_gateways_yaml)
-	if err != nil && !errors.IsAlreadyExists(err) {
-		return fmt.Errorf("error provisioning the Gateway CRD: %s", err)
+	if err := utils.CreateOrUpdateEmbeddedCRD(c, embeddedyamls.Manifests_deploy_submariner_crds_submariner_io_gateways_yaml); err != nil {
+		klog.Errorf("error provisioning the Gateway CRD: %v", err)
+		return err
 	}
 	return nil
 }

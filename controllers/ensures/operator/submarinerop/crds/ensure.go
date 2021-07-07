@@ -1,5 +1,5 @@
 /*
-© 2019 Red Hat, Inc. and others.
+Copyright 2021.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,19 +24,19 @@ import (
 )
 
 // Ensure functions updates or installs the operator CRDs in the cluster
-func Ensure(c client.Client) (bool, error) {
+func Ensure(c client.Client) error {
 	// Attempt to update or create the CRD definitions
 	// TODO(majopela): In the future we may want to report when we have updated the existing
 	//                 CRD definition with new versions
-	submarinerCreated, err := utils.CreateOrUpdateEmbeddedCRD(c, embeddedyamls.Manifests_deploy_crds_submariner_io_submariners_yaml)
-	if err != nil {
-		return false, err
+	if err := utils.CreateOrUpdateEmbeddedCRD(c, embeddedyamls.Manifests_deploy_crds_submariner_io_submariners_yaml); err != nil {
+		return err
 	}
-	serviceDiscoveryCreated, err := utils.CreateOrUpdateEmbeddedCRD(c,
-		embeddedyamls.Manifests_deploy_crds_submariner_io_servicediscoveries_yaml)
-	if err != nil {
-		return false, err
+	if err := utils.CreateOrUpdateEmbeddedCRD(c,
+		embeddedyamls.Manifests_deploy_crds_submariner_io_servicediscoveries_yaml); err != nil {
+		return err
 	}
-	brokerCreated, err := utils.CreateOrUpdateEmbeddedCRD(c, embeddedyamls.Manifests_deploy_crds_submariner_io_brokers_yaml)
-	return submarinerCreated || serviceDiscoveryCreated || brokerCreated, err
+	if err := utils.CreateOrUpdateEmbeddedCRD(c, embeddedyamls.Manifests_deploy_crds_submariner_io_brokers_yaml); err != nil {
+		return err
+	}
+	return nil
 }

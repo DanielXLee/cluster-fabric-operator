@@ -1,5 +1,5 @@
 /*
-© 2019 Red Hat, Inc. and others.
+Copyright 2021.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,44 +22,47 @@ import (
 	"time"
 
 	v1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/DanielXLee/cluster-fabric-operator/controllers/components"
 	consts "github.com/DanielXLee/cluster-fabric-operator/controllers/ensures"
 	"github.com/DanielXLee/cluster-fabric-operator/controllers/ensures/gateway"
 	"github.com/DanielXLee/cluster-fabric-operator/controllers/ensures/lighthouse"
-	"github.com/DanielXLee/cluster-fabric-operator/controllers/ensures/utils"
-	crdutils "github.com/DanielXLee/cluster-fabric-operator/controllers/ensures/utils/crds"
+	crdutils "github.com/DanielXLee/cluster-fabric-operator/controllers/ensures/utils"
 )
 
 func Ensure(c client.Client, config *rest.Config, componentArr []string, crds bool) error {
 	if crds {
 		crdCreator, err := crdutils.NewFromRestConfig(config)
 		if err != nil {
-			return fmt.Errorf("error accessing the target cluster: %s", err)
+			klog.Errorf("error accessing the target cluster: %v", err)
+			return err
 		}
 
 		for i := range componentArr {
 			switch componentArr[i] {
 			case components.Connectivity:
-				err = gateway.Ensure(c)
-				if err != nil {
-					return fmt.Errorf("error setting up the connectivity requirements: %s", err)
+				if err = gateway.Ensure(c); err != nil {
+					klog.Errorf("error setting up the connectivity requirements: %v", err)
+					return err
 				}
 			case components.ServiceDiscovery:
-				_, err = lighthouse.Ensure(crdCreator, c, lighthouse.BrokerCluster)
-				if err != nil {
-					return fmt.Errorf("error setting up the service discovery requirements: %s", err)
+				if err = lighthouse.Ensure(crdCreator, c, lighthouse.BrokerCluster); err != nil {
+					klog.Errorf("error setting up the service discovery requirements: %v", err)
+					return err
 				}
 			case components.Globalnet:
 				// Globalnet needs the Lighthouse CRDs too
-				_, err = lighthouse.Ensure(crdCreator, c, lighthouse.BrokerCluster)
-				if err != nil {
-					return fmt.Errorf("error setting up the globalnet requirements: %s", err)
+				if err = lighthouse.Ensure(crdCreator, c, lighthouse.BrokerCluster); err != nil {
+					klog.Errorf("error setting up the globalnet requirements: %v", err)
+					return err
 				}
 			}
 		}
@@ -88,19 +91,21 @@ func createBrokerClusterRoleAndDefaultSA(c client.Client) error {
 	// Create the a default SA for cluster access (backwards compatibility with documentation)
 	err := CreateNewBrokerSA(c, submarinerBrokerClusterDefaultSA)
 	if err != nil && !apierrors.IsAlreadyExists(err) {
-		return fmt.Errorf("error creating the default broker service account: %s", err)
+		klog.Errorf("error creating the default broker service account: %v", err)
+		return err
 	}
 
 	// Create the broker cluster role, which will also be used by any new enrolled cluster
-	_, err = CreateOrUpdateClusterBrokerRole(c)
-	if err != nil && !apierrors.IsAlreadyExists(err) {
-		return fmt.Errorf("error creating broker role: %s", err)
+	if err = CreateOrUpdateClusterBrokerRole(c); err != nil && !apierrors.IsAlreadyExists(err) {
+		klog.Errorf("error creating broker role: %v", err)
+		return err
 	}
 
 	// Create the role binding
 	err = CreateNewBrokerRoleBinding(c, submarinerBrokerClusterDefaultSA, submarinerBrokerClusterRole)
 	if err != nil && !apierrors.IsAlreadyExists(err) {
-		return fmt.Errorf("error creating the broker rolebinding: %s", err)
+		klog.Errorf("error creating the broker rolebinding: %v", err)
+		return err
 	}
 	return nil
 }
@@ -134,8 +139,7 @@ func createBrokerAdministratorRoleAndSA(c client.Client) error {
 	}
 
 	// Create the broker admin role
-	_, err = CreateOrUpdateBrokerAdminRole(c)
-	if err != nil {
+	if err = CreateOrUpdateBrokerAdminRole(c); err != nil {
 		klog.Errorf("error creating broker role: %v", err)
 		return err
 	}
@@ -180,12 +184,32 @@ func CreateNewBrokerNamespace(c client.Client) error {
 	return c.Create(context.TODO(), NewBrokerNamespace())
 }
 
-func CreateOrUpdateClusterBrokerRole(c client.Client) (created bool, err error) {
-	return utils.CreateOrUpdateRole(c, NewBrokerClusterRole())
+func CreateOrUpdateClusterBrokerRole(c client.Client) error {
+	role := &rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Name: submarinerBrokerClusterRole, Namespace: consts.SubmarinerBrokerNamespace}}
+
+	or, err := ctrl.CreateOrUpdate(context.TODO(), c, role, func() error {
+		return NewBrokerClusterRole(role)
+	})
+	if err != nil {
+		klog.Errorf("Failed to %s role %s: %v", or, role.GetName(), err)
+		return err
+	}
+	klog.Infof("Role %s %s", role.GetName(), or)
+	return nil
 }
 
-func CreateOrUpdateBrokerAdminRole(c client.Client) (created bool, err error) {
-	return utils.CreateOrUpdateRole(c, NewBrokerAdminRole())
+func CreateOrUpdateBrokerAdminRole(c client.Client) error {
+	role := &rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Name: submarinerBrokerAdminRole, Namespace: consts.SubmarinerBrokerNamespace}}
+
+	or, err := ctrl.CreateOrUpdate(context.TODO(), c, role, func() error {
+		return NewBrokerAdminRole(role)
+	})
+	if err != nil {
+		klog.Errorf("Failed to %s role %s: %v", or, role.GetName(), err)
+		return err
+	}
+	klog.Infof("Role %s %s", role.GetName(), or)
+	return nil
 }
 
 func CreateNewBrokerRoleBinding(c client.Client, serviceAccount, role string) error {
@@ -194,4 +218,56 @@ func CreateNewBrokerRoleBinding(c client.Client, serviceAccount, role string) er
 
 func CreateNewBrokerSA(c client.Client, submarinerBrokerSA string) error {
 	return c.Create(context.TODO(), NewBrokerSA(submarinerBrokerSA))
+}
+
+func NewBrokerClusterRole(role *rbacv1.Role) error {
+	role.Rules = []rbacv1.PolicyRule{
+		{
+			Verbs:     []string{"create", "get", "list", "watch", "patch", "update", "delete"},
+			APIGroups: []string{"submariner.io"},
+			Resources: []string{"clusters", "endpoints"},
+		},
+		{
+			Verbs:     []string{"create", "get", "list", "watch", "patch", "update", "delete"},
+			APIGroups: []string{"multicluster.x-k8s.io"},
+			Resources: []string{"*"},
+		},
+		{
+			Verbs:     []string{"create", "get", "list", "watch", "patch", "update", "delete"},
+			APIGroups: []string{"discovery.k8s.io"},
+			Resources: []string{"endpointslices"},
+		},
+	}
+	return nil
+}
+
+func NewBrokerAdminRole(role *rbacv1.Role) error {
+	role.Rules = []rbacv1.PolicyRule{
+		{
+			Verbs:     []string{"create", "get", "list", "watch", "patch", "update", "delete"},
+			APIGroups: []string{"submariner.io"},
+			Resources: []string{"clusters", "endpoints"},
+		},
+		{
+			Verbs:     []string{"create", "get", "list", "update", "delete"},
+			APIGroups: []string{""},
+			Resources: []string{"serviceaccounts", "secrets", "configmaps"},
+		},
+		{
+			Verbs:     []string{"create", "get", "list", "delete"},
+			APIGroups: []string{"rbac.authorization.k8s.io"},
+			Resources: []string{"rolebindings"},
+		},
+		{
+			Verbs:     []string{"create", "get", "list", "watch", "patch", "update", "delete"},
+			APIGroups: []string{"multicluster.x-k8s.io"},
+			Resources: []string{"*"},
+		},
+		{
+			Verbs:     []string{"create", "get", "list", "watch", "patch", "update", "delete"},
+			APIGroups: []string{"discovery.k8s.io"},
+			Resources: []string{"endpointslices"},
+		},
+	}
+	return nil
 }

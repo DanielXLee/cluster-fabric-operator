@@ -1,5 +1,5 @@
 /*
-© 2019 Red Hat, Inc. and others.
+Copyright 2021.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,6 +24,6 @@ import (
 )
 
 // Ensure the operator is deployed, and running
-func Ensure(c client.Client, namespace, image string, debug bool) (bool, error) {
+func Ensure(c client.Client, namespace, image string, debug bool) error {
 	return operatorpod.Ensure(c, namespace, names.OperatorComponent, image, debug)
 }

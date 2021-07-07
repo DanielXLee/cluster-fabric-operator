@@ -1,5 +1,5 @@
 /*
-© 2019 Red Hat, Inc. and others.
+Copyright 2021.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -30,11 +30,10 @@ import (
 )
 
 func Ensure(c client.Client, config *rest.Config, debug bool) error {
-	if created, err := crds.Ensure(c); err != nil {
+	if err := crds.Ensure(c); err != nil {
 		return err
-	} else if created {
-		klog.Info("Created operator CRDs")
 	}
+	klog.Info("Created operator CRDs")
 
 	if created, err := namespace.Ensure(c, consts.SubmarinerOperatorNamespace); err != nil {
 		return err
@@ -42,11 +41,10 @@ func Ensure(c client.Client, config *rest.Config, debug bool) error {
 		klog.Infof("Created operator namespace: %s", consts.SubmarinerOperatorNamespace)
 	}
 
-	if created, err := serviceaccount.Ensure(c, consts.SubmarinerOperatorNamespace); err != nil {
+	if err := serviceaccount.Ensure(c, consts.SubmarinerOperatorNamespace); err != nil {
 		return err
-	} else if created {
-		klog.Info("Created operator service account and role")
 	}
+	klog.Info("Created operator service account and role")
 
 	if created, err := lighthouseop.Ensure(c, config, consts.SubmarinerOperatorNamespace); err != nil {
 		return err
@@ -54,10 +52,9 @@ func Ensure(c client.Client, config *rest.Config, debug bool) error {
 		klog.Info("Created Lighthouse service accounts and roles")
 	}
 
-	if created, err := deployment.Ensure(c, consts.SubmarinerOperatorNamespace, consts.SubmarinerOperatorImage, debug); err != nil {
+	if err := deployment.Ensure(c, consts.SubmarinerOperatorNamespace, consts.SubmarinerOperatorImage, debug); err != nil {
 		return err
-	} else if created {
-		klog.Info("Deployed the operator successfully")
 	}
+	klog.Info("Deployed the operator successfully")
 	return nil
 }

@@ -1,5 +1,5 @@
 /*
-© 2019 Red Hat, Inc. and others.
+Copyright 2021.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,68 +25,59 @@ import (
 )
 
 // Ensure functions updates or installs the operator CRDs in the cluster
-func Ensure(c client.Client, namespace string) (bool, error) {
-	createdSA, err := ensureServiceAccounts(c, namespace)
-	if err != nil {
-		return false, err
+func Ensure(c client.Client, namespace string) error {
+	if err := ensureServiceAccounts(c, namespace); err != nil {
+		return err
 	}
 
-	createdCR, err := ensureClusterRoles(c)
-	if err != nil {
-		return false, err
+	if err := ensureClusterRoles(c); err != nil {
+		return err
 	}
 
-	createdCRB, err := ensureClusterRoleBindings(c, namespace)
-	if err != nil {
-		return false, err
+	if err := ensureClusterRoleBindings(c, namespace); err != nil {
+		return err
 	}
 
-	return createdSA || createdCR || createdCRB, nil
+	return nil
 }
 
-func ensureServiceAccounts(c client.Client, namespace string) (bool, error) {
-	createdAgentSA, err := serviceaccount.Ensure(c, namespace,
-		embeddedyamls.Manifests_config_rbac_lighthouse_agent_service_account_yaml)
-	if err != nil {
-		return false, err
+func ensureServiceAccounts(c client.Client, namespace string) error {
+	if err := serviceaccount.Ensure(c, namespace,
+		embeddedyamls.Manifests_config_rbac_lighthouse_agent_service_account_yaml); err != nil {
+		return err
 	}
 
-	createdCoreDNSSA, err := serviceaccount.Ensure(c, namespace,
-		embeddedyamls.Manifests_config_rbac_lighthouse_coredns_service_account_yaml)
-	if err != nil {
-		return false, err
+	if err := serviceaccount.Ensure(c, namespace,
+		embeddedyamls.Manifests_config_rbac_lighthouse_coredns_service_account_yaml); err != nil {
+		return err
 	}
-	return createdAgentSA || createdCoreDNSSA, err
+	return nil
 }
 
-func ensureClusterRoles(c client.Client) (bool, error) {
-	createdAgentCR, err := serviceaccount.EnsureClusterRole(c,
-		embeddedyamls.Manifests_config_rbac_lighthouse_agent_cluster_role_yaml)
-	if err != nil {
-		return false, err
+func ensureClusterRoles(c client.Client) error {
+	if err := serviceaccount.EnsureClusterRole(c,
+		embeddedyamls.Manifests_config_rbac_lighthouse_agent_cluster_role_yaml); err != nil {
+		return err
 	}
 
-	createdCoreDNSCR, err := serviceaccount.EnsureClusterRole(c,
-		embeddedyamls.Manifests_config_rbac_lighthouse_coredns_cluster_role_yaml)
-	if err != nil {
-		return false, err
+	if err := serviceaccount.EnsureClusterRole(c,
+		embeddedyamls.Manifests_config_rbac_lighthouse_coredns_cluster_role_yaml); err != nil {
+		return err
 	}
 
-	return createdAgentCR || createdCoreDNSCR, err
+	return nil
 }
 
-func ensureClusterRoleBindings(c client.Client, namespace string) (bool, error) {
-	createdAgentCRB, err := serviceaccount.EnsureClusterRoleBinding(c, namespace,
-		embeddedyamls.Manifests_config_rbac_lighthouse_agent_cluster_role_binding_yaml)
-	if err != nil {
-		return false, err
+func ensureClusterRoleBindings(c client.Client, namespace string) error {
+	if err := serviceaccount.EnsureClusterRoleBinding(c, namespace,
+		embeddedyamls.Manifests_config_rbac_lighthouse_agent_cluster_role_binding_yaml); err != nil {
+		return err
 	}
 
-	createdCoreDNSCRB, err := serviceaccount.EnsureClusterRoleBinding(c, namespace,
-		embeddedyamls.Manifests_config_rbac_lighthouse_coredns_cluster_role_binding_yaml)
-	if err != nil {
-		return false, err
+	if err := serviceaccount.EnsureClusterRoleBinding(c, namespace,
+		embeddedyamls.Manifests_config_rbac_lighthouse_coredns_cluster_role_binding_yaml); err != nil {
+		return err
 	}
 
-	return createdAgentCRB || createdCoreDNSCRB, err
+	return nil
 }

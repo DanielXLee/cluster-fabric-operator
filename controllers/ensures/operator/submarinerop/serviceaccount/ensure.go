@@ -1,5 +1,5 @@
 /*
-© 2019 Red Hat, Inc. and others.
+Copyright 2021.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,177 +25,158 @@ import (
 )
 
 // Ensure functions updates or installs the operator CRDs in the cluster
-func Ensure(c client.Client, namespace string) (bool, error) {
-	createdSA, err := ensureServiceAccounts(c, namespace)
-	if err != nil {
-		return false, err
+func Ensure(c client.Client, namespace string) error {
+	if err := ensureServiceAccounts(c, namespace); err != nil {
+		return err
 	}
 
-	createdRole, err := ensureRoles(c, namespace)
-	if err != nil {
-		return false, err
+	if err := ensureRoles(c, namespace); err != nil {
+		return err
 	}
 
-	createdRB, err := ensureRoleBindings(c, namespace)
-	if err != nil {
-		return false, err
+	if err := ensureRoleBindings(c, namespace); err != nil {
+		return err
 	}
 
-	createdCR, err := ensureClusterRoles(c)
-	if err != nil {
-		return false, err
+	if err := ensureClusterRoles(c); err != nil {
+		return err
 	}
 
-	createdCRB, err := ensureClusterRoleBindings(c, namespace)
-	if err != nil {
-		return false, err
+	if err := ensureClusterRoleBindings(c, namespace); err != nil {
+		return err
 	}
 
-	return createdSA || createdRole || createdRB || createdCR || createdCRB, nil
+	return nil
 }
 
-func ensureServiceAccounts(c client.Client, namespace string) (bool, error) {
-	createdOperatorSA, err := serviceaccount.Ensure(c, namespace,
-		embeddedyamls.Manifests_config_rbac_submariner_operator_service_account_yaml)
-	if err != nil {
-		return false, err
+func ensureServiceAccounts(c client.Client, namespace string) error {
+	if err := serviceaccount.Ensure(c, namespace,
+		embeddedyamls.Manifests_config_rbac_submariner_operator_service_account_yaml); err != nil {
+		return err
 	}
 
-	createdSubmarinerSA, err := serviceaccount.Ensure(c, namespace,
-		embeddedyamls.Manifests_config_rbac_submariner_gateway_service_account_yaml)
-	if err != nil {
-		return false, err
+	if err := serviceaccount.Ensure(c, namespace,
+		embeddedyamls.Manifests_config_rbac_submariner_gateway_service_account_yaml); err != nil {
+		return err
 	}
 
-	createdRouteAgentSA, err := serviceaccount.Ensure(c, namespace,
-		embeddedyamls.Manifests_config_rbac_submariner_route_agent_service_account_yaml)
-	if err != nil {
-		return false, err
+	if err := serviceaccount.Ensure(c, namespace,
+		embeddedyamls.Manifests_config_rbac_submariner_route_agent_service_account_yaml); err != nil {
+		return err
 	}
 
-	createdGlobalnetSA, err := serviceaccount.Ensure(c, namespace,
-		embeddedyamls.Manifests_config_rbac_submariner_globalnet_service_account_yaml)
-	if err != nil {
-		return false, err
+	if err := serviceaccount.Ensure(c, namespace,
+		embeddedyamls.Manifests_config_rbac_submariner_globalnet_service_account_yaml); err != nil {
+		return err
 	}
 
-	createdNPSyncerSA, err := serviceaccount.Ensure(c, namespace,
-		embeddedyamls.Manifests_config_rbac_networkplugin_syncer_service_account_yaml)
-	return createdOperatorSA || createdSubmarinerSA || createdRouteAgentSA || createdGlobalnetSA || createdNPSyncerSA, err
+	if err := serviceaccount.Ensure(c, namespace,
+		embeddedyamls.Manifests_config_rbac_networkplugin_syncer_service_account_yaml); err != nil {
+		return err
+	}
+	return nil
 }
 
-func ensureClusterRoles(c client.Client) (bool, error) {
-	createdOperatorCR, err := serviceaccount.EnsureClusterRole(c,
-		embeddedyamls.Manifests_config_rbac_submariner_operator_cluster_role_yaml)
-	if err != nil {
-		return false, err
+func ensureClusterRoles(c client.Client) error {
+	if err := serviceaccount.EnsureClusterRole(c,
+		embeddedyamls.Manifests_config_rbac_submariner_operator_cluster_role_yaml); err != nil {
+		return err
+	}
+	if err := serviceaccount.EnsureClusterRole(c,
+		embeddedyamls.Manifests_config_rbac_submariner_gateway_cluster_role_yaml); err != nil {
+		return err
 	}
 
-	createdSubmarinerCR, err := serviceaccount.EnsureClusterRole(c,
-		embeddedyamls.Manifests_config_rbac_submariner_gateway_cluster_role_yaml)
-	if err != nil {
-		return false, err
+	if err := serviceaccount.EnsureClusterRole(c,
+		embeddedyamls.Manifests_config_rbac_submariner_route_agent_cluster_role_yaml); err != nil {
+		return err
 	}
 
-	createdRouteAgentCR, err := serviceaccount.EnsureClusterRole(c,
-		embeddedyamls.Manifests_config_rbac_submariner_route_agent_cluster_role_yaml)
-	if err != nil {
-		return false, err
+	if err := serviceaccount.EnsureClusterRole(c,
+		embeddedyamls.Manifests_config_rbac_submariner_globalnet_cluster_role_yaml); err != nil {
+		return err
 	}
 
-	createdGlobalnetCR, err := serviceaccount.EnsureClusterRole(c,
-		embeddedyamls.Manifests_config_rbac_submariner_globalnet_cluster_role_yaml)
-	if err != nil {
-		return false, err
+	if err := serviceaccount.EnsureClusterRole(c,
+		embeddedyamls.Manifests_config_rbac_networkplugin_syncer_cluster_role_yaml); err != nil {
+		return err
 	}
-
-	createdNPSyncerCR, err := serviceaccount.EnsureClusterRole(c,
-		embeddedyamls.Manifests_config_rbac_networkplugin_syncer_cluster_role_yaml)
-	return createdOperatorCR || createdSubmarinerCR || createdRouteAgentCR || createdGlobalnetCR || createdNPSyncerCR, err
+	return nil
 }
 
-func ensureClusterRoleBindings(c client.Client, namespace string) (bool, error) {
-	createdOperatorCRB, err := serviceaccount.EnsureClusterRoleBinding(c, namespace,
-		embeddedyamls.Manifests_config_rbac_submariner_operator_cluster_role_binding_yaml)
-	if err != nil {
-		return false, err
+func ensureClusterRoleBindings(c client.Client, namespace string) error {
+	if err := serviceaccount.EnsureClusterRoleBinding(c, namespace,
+		embeddedyamls.Manifests_config_rbac_submariner_operator_cluster_role_binding_yaml); err != nil {
+		return err
 	}
 
-	createdSubmarinerCRB, err := serviceaccount.EnsureClusterRoleBinding(c, namespace,
-		embeddedyamls.Manifests_config_rbac_submariner_gateway_cluster_role_binding_yaml)
-	if err != nil {
-		return false, err
+	if err := serviceaccount.EnsureClusterRoleBinding(c, namespace,
+		embeddedyamls.Manifests_config_rbac_submariner_gateway_cluster_role_binding_yaml); err != nil {
+		return err
 	}
 
-	createdRouteAgentCRB, err := serviceaccount.EnsureClusterRoleBinding(c, namespace,
-		embeddedyamls.Manifests_config_rbac_submariner_route_agent_cluster_role_binding_yaml)
-	if err != nil {
-		return false, err
+	if err := serviceaccount.EnsureClusterRoleBinding(c, namespace,
+		embeddedyamls.Manifests_config_rbac_submariner_route_agent_cluster_role_binding_yaml); err != nil {
+		return err
 	}
 
-	createdGlobalnetCRB, err := serviceaccount.EnsureClusterRoleBinding(c, namespace,
-		embeddedyamls.Manifests_config_rbac_submariner_globalnet_cluster_role_binding_yaml)
-	if err != nil {
-		return false, err
+	if err := serviceaccount.EnsureClusterRoleBinding(c, namespace,
+		embeddedyamls.Manifests_config_rbac_submariner_globalnet_cluster_role_binding_yaml); err != nil {
+		return err
 	}
 
-	createdNPSyncerCRB, err := serviceaccount.EnsureClusterRoleBinding(c, namespace,
-		embeddedyamls.Manifests_config_rbac_networkplugin_syncer_cluster_role_binding_yaml)
-	return createdOperatorCRB || createdSubmarinerCRB || createdRouteAgentCRB || createdGlobalnetCRB || createdNPSyncerCRB, err
+	if err := serviceaccount.EnsureClusterRoleBinding(c, namespace,
+		embeddedyamls.Manifests_config_rbac_networkplugin_syncer_cluster_role_binding_yaml); err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func ensureRoles(c client.Client, namespace string) (bool, error) {
-	createdOperatorRole, err := serviceaccount.EnsureRole(c, namespace,
-		embeddedyamls.Manifests_config_rbac_submariner_operator_role_yaml)
-	if err != nil {
-		return false, err
+func ensureRoles(c client.Client, namespace string) error {
+	if err := serviceaccount.EnsureRole(c, namespace,
+		embeddedyamls.Manifests_config_rbac_submariner_operator_role_yaml); err != nil {
+		return err
 	}
 
-	createdSubmarinerRole, err := serviceaccount.EnsureRole(c, namespace,
-		embeddedyamls.Manifests_config_rbac_submariner_gateway_role_yaml)
-	if err != nil {
-		return false, err
+	if err := serviceaccount.EnsureRole(c, namespace,
+		embeddedyamls.Manifests_config_rbac_submariner_gateway_role_yaml); err != nil {
+		return err
 	}
 
-	createdRouteAgentRole, err := serviceaccount.EnsureRole(c, namespace,
-		embeddedyamls.Manifests_config_rbac_submariner_route_agent_role_yaml)
-	if err != nil {
-		return false, err
+	if err := serviceaccount.EnsureRole(c, namespace,
+		embeddedyamls.Manifests_config_rbac_submariner_route_agent_role_yaml); err != nil {
+		return err
 	}
 
-	createdGlobalnetRole, err := serviceaccount.EnsureRole(c, namespace,
-		embeddedyamls.Manifests_config_rbac_submariner_globalnet_role_yaml)
-	if err != nil {
-		return false, err
+	if err := serviceaccount.EnsureRole(c, namespace,
+		embeddedyamls.Manifests_config_rbac_submariner_globalnet_role_yaml); err != nil {
+		return err
 	}
 
-	return createdOperatorRole || createdSubmarinerRole || createdRouteAgentRole || createdGlobalnetRole, err
+	return nil
 }
 
-func ensureRoleBindings(c client.Client, namespace string) (bool, error) {
-	createdOperatorRB, err := serviceaccount.EnsureRoleBinding(c, namespace,
-		embeddedyamls.Manifests_config_rbac_submariner_operator_role_binding_yaml)
-	if err != nil {
-		return false, err
+func ensureRoleBindings(c client.Client, namespace string) error {
+	if err := serviceaccount.EnsureRoleBinding(c, namespace,
+		embeddedyamls.Manifests_config_rbac_submariner_operator_role_binding_yaml); err != nil {
+		return err
 	}
 
-	createdSubmarinerRB, err := serviceaccount.EnsureRoleBinding(c, namespace,
-		embeddedyamls.Manifests_config_rbac_submariner_gateway_role_binding_yaml)
-	if err != nil {
-		return false, err
+	if err := serviceaccount.EnsureRoleBinding(c, namespace,
+		embeddedyamls.Manifests_config_rbac_submariner_gateway_role_binding_yaml); err != nil {
+		return err
 	}
 
-	createdRouteAgentRB, err := serviceaccount.EnsureRoleBinding(c, namespace,
-		embeddedyamls.Manifests_config_rbac_submariner_route_agent_role_binding_yaml)
-	if err != nil {
-		return false, err
+	if err := serviceaccount.EnsureRoleBinding(c, namespace,
+		embeddedyamls.Manifests_config_rbac_submariner_route_agent_role_binding_yaml); err != nil {
+		return err
 	}
 
-	createdGlobalnetRB, err := serviceaccount.EnsureRoleBinding(c, namespace,
-		embeddedyamls.Manifests_config_rbac_submariner_globalnet_role_binding_yaml)
-	if err != nil {
-		return false, err
+	if err := serviceaccount.EnsureRoleBinding(c, namespace,
+		embeddedyamls.Manifests_config_rbac_submariner_globalnet_role_binding_yaml); err != nil {
+		return err
 	}
 
-	return createdOperatorRB || createdSubmarinerRB || createdRouteAgentRB || createdGlobalnetRB, err
+	return nil
 }

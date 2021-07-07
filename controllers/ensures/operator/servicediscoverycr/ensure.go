@@ -1,5 +1,5 @@
 /*
-© 2021 Red Hat, Inc. and others.
+Copyright 2021.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,34 +17,45 @@ limitations under the License.
 package servicediscoverycr
 
 import (
+	"context"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/DanielXLee/cluster-fabric-operator/controllers/ensures/utils"
-
 	submariner "github.com/submariner-io/submariner-operator/apis/submariner/v1alpha1"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/DanielXLee/cluster-fabric-operator/controllers/ensures/names"
 )
 
-func init() {
-	err := submariner.AddToScheme(scheme.Scheme)
-	if err != nil {
-		panic(err)
-	}
-}
+// func init() {
+// 	err := submariner.AddToScheme(scheme.Scheme)
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// }
 
 func Ensure(c client.Client, namespace string, serviceDiscoverySpec *submariner.ServiceDiscoverySpec) error {
-	sd := &submariner.ServiceDiscovery{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Name:      names.ServiceDiscoveryCrName,
-		},
-		Spec: *serviceDiscoverySpec,
+	// sd := &submariner.ServiceDiscovery{
+	// 	ObjectMeta: metav1.ObjectMeta{
+	// 		Namespace: namespace,
+	// 		Name:      names.ServiceDiscoveryCrName,
+	// 	},
+	// 	Spec: *serviceDiscoverySpec,
+	// }
+
+	// _, err := utils.CreateOrUpdate(c, sd)
+
+	sd := &submariner.ServiceDiscovery{ObjectMeta: metav1.ObjectMeta{Name: names.ServiceDiscoveryCrName, Namespace: namespace}}
+	or, err := ctrl.CreateOrUpdate(context.TODO(), c, sd, func() error {
+		sd.Spec = *serviceDiscoverySpec
+		return nil
+	})
+	if err != nil {
+		klog.Errorf("Failed to %s ServiceDiscovery %s: %v", or, sd.GetName(), err)
+		return err
 	}
-
-	_, err := utils.CreateOrUpdate(c, sd)
-
-	return err
+	klog.Infof("ServiceDiscovery %s %s", sd.GetName(), or)
+	return nil
 }

@@ -1,5 +1,5 @@
 /*
-© 2021 Red Hat, Inc. and others.
+Copyright 2021.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,58 +20,45 @@ import (
 	"context"
 	"fmt"
 
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
-	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/rest"
+	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/DanielXLee/cluster-fabric-operator/controllers/ensures/operator/common/embeddedyamls"
 )
 
-func CreateOrUpdate(c client.Client, obj client.Object) (bool, error) {
-	// result, err := util.CreateOrUpdate(client, obj, util.Replace(obj))
-	result, err := ctrl.CreateOrUpdate(context.TODO(), c, obj, func() error {
-		return nil
-	})
-	return result == "created", err
+type CRDUpdater interface {
+	Create(ctx context.Context, customResourceDefinition *apiextensionsv1.CustomResourceDefinition, opts metav1.CreateOptions) (*apiextensionsv1.CustomResourceDefinition, error)
+	Update(ctx context.Context, customResourceDefinition *apiextensionsv1.CustomResourceDefinition, opts metav1.UpdateOptions) (*apiextensionsv1.CustomResourceDefinition, error)
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*apiextensionsv1.CustomResourceDefinition, error)
+	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 }
 
-func CreateOrUpdateClusterRole(c client.Client, clusterRole *rbacv1.ClusterRole) (bool, error) {
-	return CreateOrUpdate(c, clusterRole)
-}
-
-func CreateOrUpdateClusterRoleBinding(c client.Client, clusterRoleBinding *rbacv1.ClusterRoleBinding) (bool, error) {
-	return CreateOrUpdate(c, clusterRoleBinding)
-}
-
-func CreateOrUpdateCRD(c client.Client, crd *apiextensions.CustomResourceDefinition) (bool, error) {
-	return CreateOrUpdate(c, crd)
-}
-
-func CreateOrUpdateEmbeddedCRD(c client.Client, crdYaml string) (bool, error) {
-	crd := &apiextensions.CustomResourceDefinition{}
-
-	if err := embeddedyamls.GetObject(crdYaml, crd); err != nil {
-		return false, fmt.Errorf("error extracting embedded CRD: %s", err)
+func NewFromRestConfig(config *rest.Config) (CRDUpdater, error) {
+	apiext, err := clientset.NewForConfig(config)
+	if err != nil {
+		return nil, fmt.Errorf("error creating the api extensions client: %s", err)
 	}
-
-	return CreateOrUpdateCRD(c, crd)
+	return apiext.ApiextensionsV1().CustomResourceDefinitions(), nil
 }
 
-func CreateOrUpdateDeployment(c client.Client, deployment *appsv1.Deployment) (bool, error) {
-	return CreateOrUpdate(c, deployment)
-}
-
-func CreateOrUpdateRole(c client.Client, role *rbacv1.Role) (bool, error) {
-	return CreateOrUpdate(c, role)
-}
-
-func CreateOrUpdateRoleBinding(c client.Client, roleBinding *rbacv1.RoleBinding) (bool, error) {
-	return CreateOrUpdate(c, roleBinding)
-}
-
-func CreateOrUpdateServiceAccount(c client.Client, sa *corev1.ServiceAccount) (bool, error) {
-	return CreateOrUpdate(c, sa)
+func CreateOrUpdateEmbeddedCRD(c client.Client, crdYaml string) error {
+	crdName, err := embeddedyamls.GetObjectName(crdYaml)
+	if err != nil {
+		return err
+	}
+	crd := &apiextensionsv1.CustomResourceDefinition{ObjectMeta: metav1.ObjectMeta{Name: crdName}}
+	or, err := ctrl.CreateOrUpdate(context.TODO(), c, crd, func() error {
+		return embeddedyamls.GetObject(crdYaml, crd)
+	})
+	if err != nil {
+		klog.Errorf("Failed to %s CRD %s: %v", or, crd.GetName(), err)
+		return err
+	}
+	klog.Infof("CRD %s %s", crd.GetName(), or)
+	return nil
 }

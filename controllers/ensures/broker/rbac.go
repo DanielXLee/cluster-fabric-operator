@@ -1,5 +1,5 @@
 /*
-© 2019 Red Hat, Inc. and others.
+Copyright 2021.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -51,68 +51,68 @@ func NewBrokerSA(submarinerBrokerSA string) *v1.ServiceAccount {
 }
 
 // Create a role to bind to Broker SA
-func NewBrokerAdminRole() *rbacv1.Role {
-	return &rbacv1.Role{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      submarinerBrokerAdminRole,
-			Namespace: consts.SubmarinerBrokerNamespace,
-		},
-		Rules: []rbacv1.PolicyRule{
-			{
-				Verbs:     []string{"create", "get", "list", "watch", "patch", "update", "delete"},
-				APIGroups: []string{"submariner.io"},
-				Resources: []string{"clusters", "endpoints"},
-			},
-			{
-				Verbs:     []string{"create", "get", "list", "update", "delete"},
-				APIGroups: []string{""},
-				Resources: []string{"serviceaccounts", "secrets", "configmaps"},
-			},
-			{
-				Verbs:     []string{"create", "get", "list", "delete"},
-				APIGroups: []string{"rbac.authorization.k8s.io"},
-				Resources: []string{"rolebindings"},
-			},
-			{
-				Verbs:     []string{"create", "get", "list", "watch", "patch", "update", "delete"},
-				APIGroups: []string{"multicluster.x-k8s.io"},
-				Resources: []string{"*"},
-			},
-			{
-				Verbs:     []string{"create", "get", "list", "watch", "patch", "update", "delete"},
-				APIGroups: []string{"discovery.k8s.io"},
-				Resources: []string{"endpointslices"},
-			},
-		},
-	}
-}
+// func NewBrokerAdminRole() *rbacv1.Role {
+// 	return &rbacv1.Role{
+// 		ObjectMeta: metav1.ObjectMeta{
+// 			Name:      submarinerBrokerAdminRole,
+// 			Namespace: consts.SubmarinerBrokerNamespace,
+// 		},
+// 		Rules: []rbacv1.PolicyRule{
+// 			{
+// 				Verbs:     []string{"create", "get", "list", "watch", "patch", "update", "delete"},
+// 				APIGroups: []string{"submariner.io"},
+// 				Resources: []string{"clusters", "endpoints"},
+// 			},
+// 			{
+// 				Verbs:     []string{"create", "get", "list", "update", "delete"},
+// 				APIGroups: []string{""},
+// 				Resources: []string{"serviceaccounts", "secrets", "configmaps"},
+// 			},
+// 			{
+// 				Verbs:     []string{"create", "get", "list", "delete"},
+// 				APIGroups: []string{"rbac.authorization.k8s.io"},
+// 				Resources: []string{"rolebindings"},
+// 			},
+// 			{
+// 				Verbs:     []string{"create", "get", "list", "watch", "patch", "update", "delete"},
+// 				APIGroups: []string{"multicluster.x-k8s.io"},
+// 				Resources: []string{"*"},
+// 			},
+// 			{
+// 				Verbs:     []string{"create", "get", "list", "watch", "patch", "update", "delete"},
+// 				APIGroups: []string{"discovery.k8s.io"},
+// 				Resources: []string{"endpointslices"},
+// 			},
+// 		},
+// 	}
+// }
 
-// Create a role for each Cluster SAs to bind to
-func NewBrokerClusterRole() *rbacv1.Role {
-	return &rbacv1.Role{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      submarinerBrokerClusterRole,
-			Namespace: consts.SubmarinerBrokerNamespace,
-		},
-		Rules: []rbacv1.PolicyRule{
-			{
-				Verbs:     []string{"create", "get", "list", "watch", "patch", "update", "delete"},
-				APIGroups: []string{"submariner.io"},
-				Resources: []string{"clusters", "endpoints"},
-			},
-			{
-				Verbs:     []string{"create", "get", "list", "watch", "patch", "update", "delete"},
-				APIGroups: []string{"multicluster.x-k8s.io"},
-				Resources: []string{"*"},
-			},
-			{
-				Verbs:     []string{"create", "get", "list", "watch", "patch", "update", "delete"},
-				APIGroups: []string{"discovery.k8s.io"},
-				Resources: []string{"endpointslices"},
-			},
-		},
-	}
-}
+// // Create a role for each Cluster SAs to bind to
+// func NewBrokerClusterRole(role *rbacv1.Role) error {
+// 	return &rbacv1.Role{
+// 		ObjectMeta: metav1.ObjectMeta{
+// 			Name:      submarinerBrokerClusterRole,
+// 			Namespace: consts.SubmarinerBrokerNamespace,
+// 		},
+// 		Rules: []rbacv1.PolicyRule{
+// 			{
+// 				Verbs:     []string{"create", "get", "list", "watch", "patch", "update", "delete"},
+// 				APIGroups: []string{"submariner.io"},
+// 				Resources: []string{"clusters", "endpoints"},
+// 			},
+// 			{
+// 				Verbs:     []string{"create", "get", "list", "watch", "patch", "update", "delete"},
+// 				APIGroups: []string{"multicluster.x-k8s.io"},
+// 				Resources: []string{"*"},
+// 			},
+// 			{
+// 				Verbs:     []string{"create", "get", "list", "watch", "patch", "update", "delete"},
+// 				APIGroups: []string{"discovery.k8s.io"},
+// 				Resources: []string{"endpointslices"},
+// 			},
+// 		},
+// 	}
+// }
 
 // Create a role for to bind the cluster admin SA
 func NewBrokerRoleBinding(serviceAccount, role string) *rbacv1.RoleBinding {
