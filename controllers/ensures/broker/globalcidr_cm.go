@@ -43,6 +43,7 @@ type ClusterInfo struct {
 
 func CreateGlobalnetConfigMap(c client.Client, globalnetEnabled bool, defaultGlobalCidrRange string,
 	defaultGlobalClusterSize uint, namespace string) error {
+	klog.Info("Create or update globalnet configmap")
 	cm := &v1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      GlobalCIDRConfigMapName,
@@ -55,6 +56,7 @@ func CreateGlobalnetConfigMap(c client.Client, globalnetEnabled bool, defaultGlo
 	if err != nil {
 		klog.Errorf("error %s globalnet configmap: %v", or, err)
 	}
+	klog.Infof("Configmap %s %s", GlobalCIDRConfigMapName, or)
 	return nil
 }
 

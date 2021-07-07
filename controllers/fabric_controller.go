@@ -20,14 +20,23 @@ import (
 	"context"
 	"reflect"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	operatorv1alpha1 "github.com/DanielXLee/cluster-fabric-operator/api/v1alpha1"
+	consts "github.com/DanielXLee/cluster-fabric-operator/controllers/ensures"
 	"github.com/DanielXLee/cluster-fabric-operator/controllers/ensures/broker"
 )
 
@@ -106,7 +115,42 @@ func (r *FabricReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ c
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *FabricReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	cmPredicates := predicate.Funcs{
+		CreateFunc: func(e event.CreateEvent) bool {
+			return false
+		},
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			return false
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			labels := e.Object.GetLabels()
+			for labelKey := range labels {
+				if labelKey == consts.FabricNameLabel {
+					return true
+				}
+			}
+			return false
+		},
+	}
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&operatorv1alpha1.Fabric{}).
+		Watches(
+			&source.Kind{Type: &corev1.ConfigMap{}},
+			handler.EnqueueRequestsFromMapFunc(func(obj client.Object) []reconcile.Request {
+				lables := obj.GetLabels()
+				name, nameOk := lables[consts.FabricNameLabel]
+				ns, namespaceOK := lables[consts.FabricNamespaceLabel]
+				if nameOk && namespaceOK {
+					return []reconcile.Request{
+						{NamespacedName: types.NamespacedName{
+							Name:      name,
+							Namespace: ns,
+						}},
+					}
+				}
+				return nil
+			}),
+			builder.WithPredicates(cmPredicates),
+		).
 		Complete(r)
 }

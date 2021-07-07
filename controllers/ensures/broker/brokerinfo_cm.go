@@ -46,7 +46,6 @@ type BrokerInfo struct {
 	BrokerURL                   string     `json:"brokerURL"`
 	ClientToken                 *v1.Secret `json:"clientToken,omitempty"`
 	IPSecPSK                    *v1.Secret `json:"ipsecPSK,omitempty"`
-	ServiceDiscovery            bool       `json:"serviceDiscovery,omitempty"`
 	Components                  []string   `json:",omitempty"`
 	CustomDomains               *[]string  `json:"customDomains,omitempty"`
 	GlobalnetCIDRRange          string     `json:"globalnetCIDRRange,omitempty"`
@@ -93,25 +92,30 @@ func NewFromString(str string) (*BrokerInfo, error) {
 	return data, json.Unmarshal(bytes, data)
 }
 
-func (data *BrokerInfo) WriteConfigMap(c client.Client) error {
+func (data *BrokerInfo) WriteConfigMap(c client.Client, instance *operatorv1alpha1.Fabric) error {
 	cm := &v1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      consts.SubmarinerBrokerInfo,
 			Namespace: consts.SubmarinerBrokerNamespace,
 		},
 	}
+	labels := make(map[string]string)
+	labels[consts.FabricNameLabel] = instance.GetName()
+	labels[consts.FabricNamespaceLabel] = instance.GetNamespace()
+
 	or, err := ctrl.CreateOrUpdate(context.TODO(), c, cm, func() error {
 		dataStr, err := data.ToString()
 		if err != nil {
 			return err
 		}
+		cm.ObjectMeta.Labels = labels
 		cm.Data = map[string]string{"brokerInfo": dataStr}
 		return nil
 	})
 	if err != nil {
 		return err
 	}
-	klog.Infof("Configmap broker-info %s", or)
+	klog.Infof("Configmap %s %s", consts.SubmarinerBrokerInfo, or)
 	return nil
 }
 
@@ -140,6 +144,7 @@ func NewFromCluster(c client.Client, restConfig *rest.Config) (*BrokerInfo, erro
 }
 
 func CreateBrokerInfoConfigMap(c client.Client, restConfig *rest.Config, instance *operatorv1alpha1.Fabric) error {
+	klog.Info("Create or update broker info configmap")
 	brokerInfo, err := NewFromCluster(c, restConfig)
 	if err != nil {
 		return err
@@ -152,7 +157,7 @@ func CreateBrokerInfoConfigMap(c client.Client, restConfig *rest.Config, instanc
 		brokerInfo.CustomDomains = &brokerConfig.DefaultCustomDomains
 	}
 
-	if err := brokerInfo.WriteConfigMap(c); err != nil {
+	if err := brokerInfo.WriteConfigMap(c, instance); err != nil {
 		return err
 	}
 	return nil

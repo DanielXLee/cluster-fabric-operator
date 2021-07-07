@@ -25,4 +25,10 @@ const (
 
 	// SubmarinerBrokerInfo represents the broker info configmap name
 	SubmarinerBrokerInfo = "submariner-broker-info"
+
+	//FabricNameLabel is the label used to label the resource managed by fabric
+	FabricNameLabel = "operator.tkestack.io/fabric-name"
+
+	//FabricNamespaceLabel is the label used to label the resource managed by fabric
+	FabricNamespaceLabel = "operator.tkestack.io/fabric-namespace"
 )
