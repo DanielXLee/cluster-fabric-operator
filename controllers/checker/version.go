@@ -27,8 +27,8 @@ import (
 )
 
 const (
-	minK8sMajor = 1 // We need K8s 1.17 for endpoint slices
-	minK8sMinor = 17
+	minK8sMajor = 1 // We need K8s 1.15 for endpoint slices
+	minK8sMinor = 15
 )
 
 func CheckRequirements(config *rest.Config) (string, []string, error) {

@@ -25,7 +25,11 @@ Submariner 是由 Rancher 开源的跨集群网络互通解决方案，通过创
 
 ## Operator 实现
 
-通过 Operator 的形式部署 Submariner, operator 将会分为 `broker` 端和 `agent` 端，用户选择一个集群部署 `broker` Operator, 其它集群部署 `agent` Operator, 部署完 `agent` Operator 之后，创建一个 Operator CR 就可以将集群加入到 `broker`, 这样就与 `broker` 建立了互通。
+通过 Operator 的形式部署 Submariner, operator 将会被部署在每个集群
+
+- 部署 `broker`: 创建 `Fabric` CR, 并配置 `brokerConfig`
+- 部署 `join`: 创建 `Fabric` CR, 并配置 `joinConfig`
+
 
 ### 架构
 
