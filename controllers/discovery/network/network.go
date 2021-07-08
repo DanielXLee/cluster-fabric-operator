@@ -121,7 +121,10 @@ func networkPluginsDiscovery(dynClient dynamic.Interface, c client.Client) (*Clu
 	if err != nil || ovnClusterNet != nil {
 		return ovnClusterNet, err
 	}
-
+	calicoClusterNet, err := discoverCalicoNetwork(c)
+	if err != nil || calicoClusterNet != nil {
+		return calicoClusterNet, err
+	}
 	return nil, nil
 }
 

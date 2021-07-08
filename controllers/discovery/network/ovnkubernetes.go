@@ -24,6 +24,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	constants "github.com/DanielXLee/cluster-fabric-operator/controllers/discovery"
 )
 
 const (
@@ -60,7 +62,7 @@ func discoverOvnKubernetesNetwork(c client.Client) (*ClusterNetwork, error) {
 	}
 
 	clusterNetwork := &ClusterNetwork{
-		NetworkPlugin: OvnKubernetes,
+		NetworkPlugin: constants.NetworkPluginOVNKubernetes,
 		PluginSettings: map[string]string{
 			OvnNBDB: fmt.Sprintf("%s:%s.%s:%d", dbConnectionProtocol, ovnKubeService, ovnDBPod.Namespace, OvnNBDBDefaultPort),
 			OvnSBDB: fmt.Sprintf("%s:%s.%s:%d", dbConnectionProtocol, ovnKubeService, ovnDBPod.Namespace, OvnSBDBDefaultPort),

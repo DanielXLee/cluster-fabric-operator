@@ -27,12 +27,26 @@ import (
 	v1meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	constants "github.com/DanielXLee/cluster-fabric-operator/controllers/discovery"
 )
 
 func discoverGenericNetwork(c client.Client) (*ClusterNetwork, error) {
-	clusterNetwork := &ClusterNetwork{
-		NetworkPlugin: "generic",
+	clusterNetwork, err := discoverNetwork(c)
+	if err != nil {
+		return nil, err
 	}
+
+	if clusterNetwork != nil {
+		clusterNetwork.NetworkPlugin = constants.NetworkPluginGeneric
+		return clusterNetwork, nil
+	}
+
+	return nil, nil
+}
+
+func discoverNetwork(c client.Client) (*ClusterNetwork, error) {
+	clusterNetwork := &ClusterNetwork{}
 
 	podIPRange, err := findPodIPRange(c)
 	if err != nil {

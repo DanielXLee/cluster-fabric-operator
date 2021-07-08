@@ -1,5 +1,7 @@
 /*
-Copyright 2021.
+SPDX-License-Identifier: Apache-2.0
+
+Copyright Contributors to the Submariner project.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,44 +15,45 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
 package network
 
 import (
+	"context"
+
+	v1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	constants "github.com/DanielXLee/cluster-fabric-operator/controllers/discovery"
 )
 
-func discoverWeaveNetwork(c client.Client) (*ClusterNetwork, error) {
-	weaveNetPod, err := findPod(c, "name=weave-net")
-
-	if err != nil || weaveNetPod == nil {
+func discoverCalicoNetwork(c client.Client) (*ClusterNetwork, error) {
+	cmList := &v1.ConfigMapList{}
+	err := c.List(context.TODO(), cmList)
+	if err != nil {
 		return nil, err
 	}
 
-	var clusterNetwork *ClusterNetwork
-
-	for _, container := range weaveNetPod.Spec.Containers {
-		for _, envVar := range container.Env {
-			if envVar.Name == "IPALLOC_RANGE" {
-				clusterNetwork = &ClusterNetwork{
-					PodCIDRs:      []string{envVar.Value},
-					NetworkPlugin: constants.NetworkPluginWeaveNet,
-				}
-				break
-			}
+	findCalicoConfigMap := false
+	for _, cm := range cmList.Items {
+		if cm.Name == "calico-config" {
+			findCalicoConfigMap = true
+			break
 		}
 	}
 
-	if clusterNetwork == nil {
+	if !findCalicoConfigMap {
 		return nil, nil
 	}
 
-	clusterIPRange, err := findClusterIPRange(c)
-	if err == nil && clusterIPRange != "" {
-		clusterNetwork.ServiceCIDRs = []string{clusterIPRange}
+	clusterNetwork, err := discoverNetwork(c)
+	if err != nil {
+		return nil, err
 	}
 
-	return clusterNetwork, nil
+	if clusterNetwork != nil {
+		clusterNetwork.NetworkPlugin = constants.NetworkPluginCalico
+		return clusterNetwork, nil
+	}
+
+	return nil, nil
 }

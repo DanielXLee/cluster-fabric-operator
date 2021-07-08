@@ -25,6 +25,8 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	constants "github.com/DanielXLee/cluster-fabric-operator/controllers/discovery"
 )
 
 func discoverCanalFlannelNetwork(c client.Client) (*ClusterNetwork, error) {
@@ -52,7 +54,7 @@ func discoverCanalFlannelNetwork(c client.Client) (*ClusterNetwork, error) {
 	}
 
 	clusterNetwork := &ClusterNetwork{
-		NetworkPlugin: "canal-flannel",
+		NetworkPlugin: constants.NetworkPluginCanalFlannel,
 		PodCIDRs:      []string{*podCIDR},
 	}
 
