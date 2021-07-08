@@ -2,7 +2,26 @@
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
-
+<p align="center">
+  <a href="https://github.com/DanielXLee/cluster-fabric-operator">
+    <img src="https://github.com/DanielXLee/cluster-fabric-operator/workflows/CI%20Pipeline/badge.svg" alt="Github CI">
+  </a>
+  <a href="https://goreportcard.com/report/github.com/DanielXLee/cluster-fabric-operator">
+    <img src="https://goreportcard.com/badge/github.com/DanielXLee/cluster-fabric-operator" alt="GoReportCard">
+  </a>
+  <a href="http://golang.org">
+    <img src="https://img.shields.io/github/go-mod/go-version/DanielXLee/cluster-fabric-operator" alt="GitHub go.mod Go version (subdirectory of monorepo)">
+  </a>
+  <a href="http://golang.org">
+    <img src="https://img.shields.io/badge/Made%20with-Go-1f425f.svg" alt="made-with-Go">
+  </a>
+  <a href="https://quay.io/repository/opstree/cluster-fabric-operator">
+    <img src="https://img.shields.io/badge/container-ready-green" alt="Docker">
+  </a>
+  <a href="https://github.com/DanielXLee/cluster-fabric-operator/master/LICENSE">
+    <img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License">
+  </a>
+</p>
 - [Cluster Fabric Operator](#cluster-fabric-operator)
   - [Architecture](#architecture)
     - [Purpose](#purpose)
