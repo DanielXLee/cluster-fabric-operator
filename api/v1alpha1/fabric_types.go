@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -36,7 +37,7 @@ type FabricSpec struct {
 	// +optional
 	JoinConfig `json:"joinConfig,omitempty"`
 
-	// CloudPrepareConfig represents the preate config for the cloud vendor.
+	// CloudPrepareConfig represents the prepare config for the cloud vendor.
 	// +optional
 	CloudPrepareConfig `json:"cloudPrepareConfig,omitempty"`
 }
@@ -171,15 +172,24 @@ type JoinConfig struct {
 }
 
 type CloudPrepareConfig struct {
-	// Vendor represents cloud vendor, example: aws, gcp
-	Vendor string `json:"vendor,omitempty"`
-	// AWS represents aws cloud prepare setup
+	// CredentialsSecret is a reference to the secret with a certain cloud platform
+	// credentials, the supported platform includes AWS, GCP, Azure, ROKS and OSD.
+	// The cluster-fabric-operator will use these credentials to prepare Submariner cluster
+	// environment. If the submariner cluster environment requires cluster-fabric-operator
+	// preparation, this field should be specified.
+	// +optional
+	CredentialsSecret *corev1.LocalObjectReference `json:"credentialsSecret,omitempty"`
+
+	// Infra ID
+	InfraID string `json:"infraID,omitempty"`
+	// Regio
+	Region string `json:"region,omitempty"`
+
+	// AWS specific cloud prepare setup
 	AWS `json:"aws,omitempty"`
 }
 
 type AWS struct {
-	// AWS credentials configuration file (default "/root/.aws/credentials")
-	Credentials string `json:"credentials,omitempty"`
 	// GatewayInstance represents type of gateways instance machine (default "m5n.large")
 	// +optional
 	// +kubebuilder:default=m5n.large
@@ -190,33 +200,6 @@ type AWS struct {
 	// +optional
 	// +kubebuilder:default=1
 	Gateways int `json:"gateways,omitempty"`
-	// AWS infra ID
-	InfraID string `json:"infraID,omitempty"`
-	// AWS profile to use for credentials (default "default")
-	Profile string `json:"profile,omitempty"`
-	// AWS regio
-	Region string `json:"region,omitempty"`
-	// CommonPrepareConfig represents common setup for cloud vendor
-	CommonPrepareConfig `json:"commonConfig,omitempty"`
-}
-
-type CommonPrepareConfig struct {
-	// Metrics port (default 8080)
-	// +optional
-	// +kubebuilder:default=8080
-	MetricsPort uint16 `json:"metricsPort,omitempty"`
-	// NAT discovery port (default 4490)
-	// +optional
-	// +kubebuilder:default=4490
-	NatDiscoveryPort uint16 `json:"natDiscoveryPort,omitempty"`
-	// IPSec NAT traversal port (default 4500)
-	// +optional
-	// +kubebuilder:default=4500
-	NattPort uint16 `json:"nattPort,omitempty"`
-	// Internal VXLAN port (default 4800)
-	// +optional
-	// +kubebuilder:default=4800
-	VxlanPort uint16 `json:"vxlanPort,omitempty"`
 }
 
 //+kubebuilder:object:root=true

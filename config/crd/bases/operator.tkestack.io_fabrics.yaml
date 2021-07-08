@@ -82,36 +82,12 @@ spec:
                     type: boolean
                 type: object
               cloudPrepareConfig:
-                description: CloudPrepareConfig represents the preate config for the
-                  cloud vendor.
+                description: CloudPrepareConfig represents the prepare config for
+                  the cloud vendor.
                 properties:
                   aws:
-                    description: AWS represents aws cloud prepare setup
+                    description: AWS specific cloud prepare setup
                     properties:
-                      commonConfig:
-                        description: CommonPrepareConfig represents common setup for
-                          cloud vendor
-                        properties:
-                          metricsPort:
-                            default: 8080
-                            description: Metrics port (default 8080)
-                            type: integer
-                          natDiscoveryPort:
-                            default: 4490
-                            description: NAT discovery port (default 4490)
-                            type: integer
-                          nattPort:
-                            default: 4500
-                            description: IPSec NAT traversal port (default 4500)
-                            type: integer
-                          vxlanPort:
-                            default: 4800
-                            description: Internal VXLAN port (default 4800)
-                            type: integer
-                        type: object
-                      credentials:
-                        description: AWS credentials configuration file (default "/root/.aws/credentials")
-                        type: string
                       gatewayInstance:
                         default: m5n.large
                         description: GatewayInstance represents type of gateways instance
@@ -123,18 +99,25 @@ spec:
                           that will be used to deploy the Submariner gateway component
                           on the managed cluster.
                         type: integer
-                      infraID:
-                        description: AWS infra ID
-                        type: string
-                      profile:
-                        description: AWS profile to use for credentials (default "default")
-                        type: string
-                      region:
-                        description: AWS regio
+                    type: object
+                  credentialsSecret:
+                    description: CredentialsSecret is a reference to the secret with
+                      a certain cloud platform credentials, the supported platform
+                      includes AWS, GCP, Azure, ROKS and OSD. The cluster-fabric-operator
+                      will use these credentials to prepare Submariner cluster environment.
+                      If the submariner cluster environment requires cluster-fabric-operator
+                      preparation, this field should be specified.
+                    properties:
+                      name:
+                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                          TODO: Add other useful fields. apiVersion, kind, uid?'
                         type: string
                     type: object
-                  vendor:
-                    description: 'Vendor represents cloud vendor, example: aws, gcp'
+                  infraID:
+                    description: Infra ID
+                    type: string
+                  region:
+                    description: Regio
                     type: string
                 type: object
               joinConfig:

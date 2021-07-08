@@ -129,18 +129,11 @@ func networkPluginsDiscovery(dynClient dynamic.Interface, c client.Client) (*Clu
 }
 
 func getGlobalCIDRs(c client.Client, operatorNamespace string) (string, error) {
-	// if submClient == nil {
-	// 	return "", nil
-	// }
 	s := &submariner.Submariner{}
 	sKey := types.NamespacedName{Name: submarinercr.SubmarinerName, Namespace: operatorNamespace}
 	if err := c.Get(context.TODO(), sKey, s); err != nil {
 		return "", err
 	}
-	// existingCfg, err := submClient.SubmarinerV1alpha1().Submariners(operatorNamespace).Get(submarinercr.SubmarinerName, v1.GetOptions{})
-	// if err != nil {
-	// 	return "", err
-	// }
 
 	globalCIDR := s.Spec.GlobalCIDR
 	return globalCIDR, nil
